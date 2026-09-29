@@ -1,0 +1,542 @@
+/* ============================================================
+   ESTILOS DE LA BIBLIOTECA DIGITAL
+   Un solo archivo de estilos compartido por todas las páginas.
+   Colores principales: azul oscuro #2c3e50 y amarillo #f1c40f.
+   ============================================================ */
+
+/* Hace que el relleno y el borde cuenten dentro del ancho de cada elemento */
+* {
+    box-sizing: border-box;
+}
+
+/* Estilo general de la página. El flex en columna mantiene
+   el pie de página abajo aunque haya poco contenido. */
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background-color: #f4f1ea;
+    color: #333;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+/* Encabezado: título a la izquierda y menú a la derecha */
+header {
+    background-color: #2c3e50;
+    color: #fff;
+    padding: 15px 40px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+header h1 {
+    margin: 0;
+    font-size: 26px;
+}
+
+nav a {
+    color: #fff;
+    text-decoration: none;
+    margin-left: 20px;
+    font-weight: bold;
+}
+
+nav a:hover {
+    color: #f1c40f;
+}
+
+/* Contenido principal: centrado y con un ancho máximo */
+main {
+    flex: 1;
+    padding: 30px 40px;
+    max-width: 1200px;
+    width: 100%;
+    margin: 0 auto;
+}
+
+main h2 {
+    color: #2c3e50;
+    border-bottom: 3px solid #f1c40f;
+    padding-bottom: 8px;
+}
+
+/* Página de inicio: bloque de bienvenida y botón "Ver catálogo" */
+.portada {
+    text-align: center;
+    padding: 80px 20px;
+}
+
+.portada h2 {
+    border: none;
+    font-size: 32px;
+}
+
+.portada p {
+    font-size: 18px;
+    margin-bottom: 30px;
+}
+
+.boton {
+    background-color: #2c3e50;
+    color: #fff;
+    padding: 12px 30px;
+    border-radius: 5px;
+    text-decoration: none;
+    font-weight: bold;
+}
+
+.boton:hover {
+    background-color: #f1c40f;
+    color: #2c3e50;
+}
+
+/* Buscador del catálogo: campo de texto y botones en una fila */
+.buscador {
+    display: flex;
+    gap: 10px;
+    margin-top: 20px;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.buscador input {
+    flex: 1;
+    min-width: 200px;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    font-size: 15px;
+}
+
+.buscador button {
+    padding: 10px 25px;
+    background-color: #2c3e50;
+    color: #fff;
+    border: none;
+    border-radius: 5px;
+    font-size: 15px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.buscador button:hover {
+    background-color: #f1c40f;
+    color: #2c3e50;
+}
+
+.buscador a {
+    color: #2c3e50;
+    font-weight: bold;
+}
+
+/* Mensaje cuando no hay resultados */
+.sin-resultados {
+    margin-top: 25px;
+    font-size: 16px;
+    color: #666;
+}
+
+/* Catálogo: cuadrícula que ajusta el número de columnas
+   al ancho de la pantalla (mínimo 200px por tarjeta) */
+.catalogo {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 25px;
+    margin-top: 25px;
+}
+
+/* Tarjeta de cada libro; se eleva un poco al pasar el ratón */
+.libro {
+    background-color: #fff;
+    border-radius: 8px;
+    padding: 15px;
+    text-align: center;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    transition: transform 0.2s;
+}
+
+.libro:hover {
+    transform: translateY(-5px);
+}
+
+/* Portada: todas con la misma altura, recortadas sin deformarse */
+.libro img {
+    width: 100%;
+    height: 280px;
+    object-fit: cover;
+    border-radius: 5px;
+}
+
+.libro h3 {
+    font-size: 16px;
+    margin: 12px 0 6px;
+    color: #2c3e50;
+}
+
+.libro p {
+    margin: 0 0 8px;
+    color: #666;
+    font-size: 14px;
+}
+
+/* Etiqueta amarilla con el año */
+.libro .anio {
+    font-size: 13px;
+    background-color: #f1c40f;
+    padding: 3px 10px;
+    border-radius: 10px;
+}
+
+/* Etiquetas de stock: verde si hay copias, rojo si está agotado */
+.disponible,
+.agotado {
+    display: inline-block;
+    font-size: 13px;
+    font-weight: bold;
+    padding: 3px 10px;
+    border-radius: 10px;
+}
+
+.libro .disponible,
+.libro .agotado {
+    margin: 10px 0 0;
+}
+
+.disponible {
+    background-color: #e8f8ee;
+    color: #27ae60;
+}
+
+.agotado {
+    background-color: #fdecea;
+    color: #c0392b;
+}
+
+/* Botón pequeño "Ver detalle" debajo de cada libro */
+.boton-detalle {
+    display: block;
+    margin-top: 12px;
+    padding: 6px 12px;
+    background-color: #2c3e50;
+    color: #fff;
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: bold;
+    border-radius: 5px;
+}
+
+.boton-detalle:hover {
+    background-color: #f1c40f;
+    color: #2c3e50;
+}
+
+/* Detalle del libro: enlace para volver al catálogo */
+.volver {
+    display: inline-block;
+    color: #2c3e50;
+    font-weight: bold;
+    text-decoration: none;
+    margin-bottom: 20px;
+}
+
+.volver:hover {
+    color: #f1c40f;
+}
+
+/* Ficha del libro: portada e información lado a lado
+   (en pantallas pequeñas se colocan una debajo de otra) */
+.detalle {
+    display: flex;
+    gap: 40px;
+    background-color: #fff;
+    padding: 30px;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    flex-wrap: wrap;
+}
+
+.detalle img {
+    width: 280px;
+    max-width: 100%;
+    border-radius: 5px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.detalle-info {
+    flex: 1;
+    min-width: 250px;
+}
+
+.detalle-info h2 {
+    margin-top: 0;
+}
+
+.detalle-info h3 {
+    color: #2c3e50;
+    margin-top: 25px;
+}
+
+.detalle-info p {
+    line-height: 1.6;
+}
+
+/* Gestión de stock: tabla con todos los libros */
+.tabla-stock {
+    width: 100%;
+    border-collapse: collapse;
+    background-color: #fff;
+    margin-top: 20px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.tabla-stock th {
+    background-color: #2c3e50;
+    color: #fff;
+    padding: 12px;
+    text-align: left;
+}
+
+.tabla-stock td {
+    padding: 10px 12px;
+    border-bottom: 1px solid #eee;
+    vertical-align: middle;
+}
+
+.tabla-stock img {
+    width: 50px;
+    height: 70px;
+    object-fit: cover;
+    border-radius: 3px;
+}
+
+/* Formulario de cada fila: número de copias y botón Guardar */
+.form-stock {
+    display: flex;
+    gap: 8px;
+}
+
+.form-stock input {
+    width: 80px;
+    padding: 6px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+}
+
+.form-stock button {
+    padding: 6px 15px;
+    background-color: #2c3e50;
+    color: #fff;
+    border: none;
+    border-radius: 5px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.form-stock button:hover {
+    background-color: #f1c40f;
+    color: #2c3e50;
+}
+
+/* Estrellas de valoración (en amarillo) */
+.estrellas {
+    color: #f1c40f;
+    font-size: 18px;
+    letter-spacing: 2px;
+}
+
+/* Valoración media en la ficha del libro */
+.valoracion {
+    color: #666;
+}
+
+/* Valoración media pequeña en las tarjetas del catálogo */
+.valoracion-tarjeta {
+    margin: 8px 0 0;
+    font-size: 13px;
+    color: #666;
+}
+
+.valoracion-tarjeta .estrellas {
+    font-size: 15px;
+}
+
+/* Sección de reseñas debajo de la ficha */
+.resenas {
+    margin-top: 40px;
+}
+
+/* Formulario para escribir la reseña */
+.form-resena {
+    background-color: #fff;
+    padding: 25px;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 25px;
+}
+
+.form-resena h3 {
+    margin-top: 0;
+    color: #2c3e50;
+}
+
+.form-resena label {
+    margin-top: 10px;
+    font-weight: bold;
+}
+
+.form-resena select,
+.form-resena textarea {
+    margin-top: 5px;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    font-size: 15px;
+    font-family: inherit;
+}
+
+.form-resena select {
+    max-width: 220px;
+}
+
+.form-resena button {
+    margin-top: 15px;
+    align-self: flex-start;
+    padding: 10px 25px;
+    background-color: #2c3e50;
+    color: #fff;
+    border: none;
+    border-radius: 5px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.form-resena button:hover {
+    background-color: #f1c40f;
+    color: #2c3e50;
+}
+
+/* Cada reseña publicada */
+.resena {
+    background-color: #fff;
+    padding: 15px 20px;
+    border-radius: 8px;
+    border-left: 4px solid #f1c40f;
+    margin-bottom: 15px;
+}
+
+.resena-cabecera {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.fecha {
+    color: #999;
+    font-size: 13px;
+}
+
+/* Botón rojo para eliminar reseñas */
+.boton-eliminar {
+    padding: 5px 12px;
+    background-color: #c0392b;
+    color: #fff;
+    border: none;
+    border-radius: 5px;
+    font-size: 13px;
+    cursor: pointer;
+}
+
+.boton-eliminar:hover {
+    background-color: #962d22;
+}
+
+/* Saludo "Hola, nombre" en el menú del catálogo */
+.usuario {
+    margin-left: 20px;
+    color: #f1c40f;
+}
+
+/* Formularios de login y registro: caja blanca centrada */
+.formulario {
+    background-color: #fff;
+    max-width: 400px;
+    margin: 40px auto;
+    padding: 30px;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    display: flex;
+    flex-direction: column;
+}
+
+.formulario h2 {
+    margin-top: 0;
+    text-align: center;
+}
+
+.formulario label {
+    margin-top: 12px;
+    font-weight: bold;
+}
+
+.formulario input {
+    padding: 10px;
+    margin-top: 5px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    font-size: 15px;
+}
+
+.formulario button {
+    margin-top: 20px;
+    padding: 12px;
+    background-color: #2c3e50;
+    color: #fff;
+    border: none;
+    border-radius: 5px;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.formulario button:hover {
+    background-color: #f1c40f;
+    color: #2c3e50;
+}
+
+.formulario p {
+    text-align: center;
+}
+
+.formulario a {
+    color: #2c3e50;
+    font-weight: bold;
+}
+
+/* Mensajes: rojo para errores, verde para avisos de éxito */
+.error {
+    background-color: #fdecea;
+    color: #c0392b;
+    padding: 10px;
+    border-radius: 5px;
+}
+
+.exito {
+    background-color: #e8f8ee;
+    color: #27ae60;
+    padding: 10px;
+    border-radius: 5px;
+}
+
+/* Pie de página */
+footer {
+    background-color: #2c3e50;
+    color: #fff;
+    text-align: center;
+    padding: 10px;
+}

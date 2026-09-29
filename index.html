@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<!--
+    ============================================================
+    PÁGINA DE INICIO
+    Primera página que ve el visitante. Da la bienvenida y
+    tiene enlaces al catálogo, al login y al registro.
+    ============================================================
+-->
+<html lang="es">
+<head>
+    <!-- Configuración básica: tildes, adaptación a móvil, título y estilos -->
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Biblioteca Digital</title>
+    <link rel="stylesheet" href="css/estilos.css?v=5">
+</head>
+<body>
+    <!-- Encabezado con el título y el menú de navegación -->
+    <header>
+        <h1>Biblioteca Digital</h1>
+        <nav>
+            <a href="index.html">Inicio</a>
+            <a href="php/libros.php">Catálogo</a>
+            <a href="php/login.php">Iniciar sesión</a>
+            <a href="php/registro.php">Registrarse</a>
+        </nav>
+    </header>
+
+    <main>
+        <!-- Bloque de bienvenida con botón para ir al catálogo -->
+        <section class="portada">
+            <h2>Bienvenido a la Biblioteca Digital</h2>
+            <p>Explora nuestro catálogo de libros digitales.</p>
+            <a class="boton" href="php/libros.php">Ver catálogo</a>
+        </section>
+    </main>
+
+    <!-- Pie de página -->
+    <footer>
+        <p>Biblioteca Digital</p>
+    </footer>
+</body>
+</html>
