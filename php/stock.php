@@ -6,26 +6,14 @@
 // Solo pueden entrar los usuarios con admin = 1.
 // ============================================================
 
-// Inicia (o recupera) la sesión del usuario.
-session_start();
-
 // ------------------------------------------------------------
 // PROTECCIÓN DE LA PÁGINA
-// Si no hay sesión, manda al login. Si el usuario no es
-// administrador, lo devuelve al catálogo.
+// verificar_bibliotecario.php inicia la sesión, conecta con la
+// base de datos y comprueba en la base, en cada petición, que el
+// usuario sigue activo y sigue siendo bibliotecario. Si no, lo
+// saca de aquí antes de ejecutar nada de esta página.
 // ------------------------------------------------------------
-if (!isset($_SESSION["id"])) {
-    header("Location: login.php");
-    exit;
-}
-
-if (empty($_SESSION["admin"])) {
-    header("Location: libros.php");
-    exit;
-}
-
-// Conecta con la base de datos.
-include "conexion.php";
+include "verificar_bibliotecario.php";
 
 // Aquí se guarda el mensaje que confirma el cambio.
 $mensaje = "";
@@ -39,15 +27,20 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $id = (int) $_POST["id"];
     $stock = max(0, (int) $_POST["stock"]);
 
-    $actualizar = mysqli_prepare($conexion, "UPDATE libros SET stock = ? WHERE id = ?");
+    // El stock es solo del formato físico: un libro que no es físico no se modifica.
+    $actualizar = mysqli_prepare($conexion, "UPDATE libros SET stock = ? WHERE id = ? AND formato_fisico = 1");
     mysqli_stmt_bind_param($actualizar, "ii", $stock, $id);
     mysqli_stmt_execute($actualizar);
 
     $mensaje = "Stock actualizado correctamente.";
 }
 
-// Pide todos los libros para mostrarlos en la tabla.
-$resultado = mysqli_query($conexion, "SELECT id, titulo, autor, portada, stock FROM libros");
+// Pide los libros que se venden en formato físico para mostrarlos en la tabla.
+// Los libros solo digitales no tienen stock, así que no aparecen aquí.
+$resultado = mysqli_query($conexion, "SELECT id, titulo, autor, portada, stock FROM libros WHERE formato_fisico = 1");
+
+// Función que dibuja la portada (imagen o reemplazo propio).
+include "portada.php";
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -55,24 +48,14 @@ $resultado = mysqli_query($conexion, "SELECT id, titulo, autor, portada, stock F
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gestión de stock - Biblioteca Digital</title>
-    <link rel="stylesheet" href="../css/estilos.css?v=5">
+    <link rel="stylesheet" href="../css/estilos.css?v=28">
 </head>
 <body>
-    <!-- Encabezado: menú, saludo con el nombre del usuario y botón para salir -->
-    <header>
-        <h1>Biblioteca Digital</h1>
-        <nav>
-            <a href="../index.html">Inicio</a>
-            <a href="libros.php">Catálogo</a>
-            <a href="stock.php">Gestionar stock</a>
-            <a href="resenas.php">Gestionar reseñas</a>
-            <span class="usuario">Hola, <?php echo htmlspecialchars($_SESSION["nombre"]); ?></span>
-            <a href="logout.php">Cerrar sesión</a>
-        </nav>
-    </header>
+<?php include "navbar.php"; ?>
 
     <main>
         <h2>Gestión de stock</h2>
+        <p class="descripcion-pagina">Copias disponibles de los libros físicos. Los libros digitales no usan stock.</p>
 
         <!-- Aviso verde después de guardar un cambio -->
         <?php if ($mensaje) { ?>
@@ -80,6 +63,8 @@ $resultado = mysqli_query($conexion, "SELECT id, titulo, autor, portada, stock F
         <?php } ?>
 
         <!-- Tabla con todos los libros y su stock -->
+        <!-- "tabla-scroll": en un móvil la tabla se desplaza de lado dentro de este bloque, sin ensanchar la página -->
+        <div class="tabla-scroll">
         <table class="tabla-stock">
             <tr>
                 <th>Portada</th>
@@ -89,8 +74,12 @@ $resultado = mysqli_query($conexion, "SELECT id, titulo, autor, portada, stock F
             </tr>
             <!-- Una fila por cada libro -->
             <?php while ($fila = mysqli_fetch_assoc($resultado)) { ?>
-            <tr>
-                <td><img src="<?php echo $fila["portada"]; ?>" alt="<?php echo htmlspecialchars($fila["titulo"]); ?>"></td>
+            <!-- data-fila: main.js lo usa para resaltar la fila recién guardada -->
+            <tr data-fila="<?php echo $fila["id"]; ?>">
+                <td>
+                    <!-- Miniatura de la portada (o su reemplazo si no tiene imagen) -->
+                    <?php echo portada_html($fila["titulo"], $fila["portada"]); ?>
+                </td>
                 <td>
                     <strong><?php echo htmlspecialchars($fila["titulo"]); ?></strong><br>
                     <?php echo htmlspecialchars($fila["autor"]); ?>
@@ -105,15 +94,20 @@ $resultado = mysqli_query($conexion, "SELECT id, titulo, autor, portada, stock F
                 </td>
                 <td>
                     <!-- Formulario para cambiar el stock de este libro -->
-                    <form class="form-stock" method="POST">
+                    <!-- La etiqueta del campo no se ve en pantalla (clase "solo-lectores"),
+                         pero la leen los lectores de pantalla. El id lleva el número
+                         del libro para que no se repita entre filas. -->
+                    <form class="form-stock" name="form_stock_<?php echo $fila["id"]; ?>" method="POST" action="stock.php">
                         <input type="hidden" name="id" value="<?php echo $fila["id"]; ?>">
-                        <input type="number" name="stock" min="0" value="<?php echo $fila["stock"]; ?>">
-                        <button type="submit">Guardar</button>
+                        <label class="solo-lectores" for="stock_<?php echo $fila["id"]; ?>">Copias disponibles de <?php echo htmlspecialchars($fila["titulo"]); ?></label>
+                        <input type="number" id="stock_<?php echo $fila["id"]; ?>" name="stock" min="0" value="<?php echo $fila["stock"]; ?>">
+                        <button class="btn btn-primary btn-sm" type="submit">Guardar</button>
                     </form>
                 </td>
             </tr>
             <?php } ?>
         </table>
+        </div>
     </main>
 
     <!-- Pie de página -->

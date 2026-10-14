@@ -1,542 +1,2769 @@
 /* ============================================================
    ESTILOS DE LA BIBLIOTECA DIGITAL
-   Un solo archivo de estilos compartido por todas las páginas.
-   Colores principales: azul oscuro #2c3e50 y amarillo #f1c40f.
+   Una sola hoja de estilos compartida por todas las páginas.
+   Diseño propio, sin frameworks.
+
+   Índice:
+     1. Variables y reinicio
+     2. Base y tipografía
+     3. Estructura de la página (contenido y pie)
+     4. Cabecera y menú
+     5. Botones
+     6. Formularios
+     7. Tarjetas y componentes (etiquetas, avisos, diálogo, portadas)
+     8. Inicio, catálogo y carrusel
+     9. Ficha del libro y reseñas
+    10. Caja del mostrador
+    11. Tablas y gestión
+    12. Inicio de sesión y registro
+    13. Animaciones
+    14. Pantallas chicas (responsive)
+    15. Menos movimiento (accesibilidad)
+
+   Las reglas que empiezan con ".js" solo se aplican cuando
+   JavaScript está funcionando. Sin JavaScript la página se ve
+   completa y se puede usar igual, pero sin animaciones.
    ============================================================ */
+
+/* ------------------------------------------------------------
+   1. VARIABLES Y REINICIO
+   Todo el sitio usa estas variables. La identidad visual se
+   apoya en cuatro colores; el blanco se usa como superficie y
+   los grises son el color oscuro con transparencia.
+   ------------------------------------------------------------ */
+:root {
+    /* Los cuatro colores del sitio */
+    --color-dark: #0f172a;        /* azul casi negro: cabecera, textos, fondos oscuros */
+    --color-primary: #1d4ed8;     /* azul: acciones principales y enlaces */
+    --color-accent: #14b8a6;      /* verde azulado: detalles, éxito, digital */
+    --color-light: #f8fafc;       /* gris muy claro: fondo de la página */
+    --color-fondo: #f1f5f9;       /* gris claro: fondo del inicio, del login, del registro y de la ficha del libro */
+
+    /* Derivados de esos cuatro (mismo color, con transparencia) */
+    --color-surface: #ffffff;                         /* tarjetas, formularios, tablas */
+    --color-text: var(--color-dark);
+    --color-text-soft: rgba(15, 23, 42, 0.66);        /* texto secundario */
+    --color-border: rgba(15, 23, 42, 0.12);           /* bordes y líneas */
+    --color-primary-soft: rgba(29, 78, 216, 0.1);     /* fondo azul muy claro */
+    --color-accent-soft: rgba(20, 184, 166, 0.14);    /* fondo verde azulado muy claro */
+    --color-dark-soft: rgba(15, 23, 42, 0.06);        /* fondo gris muy claro */
+    --color-on-dark: rgba(255, 255, 255, 0.72);       /* texto secundario sobre fondo oscuro */
+
+    /* Zona oscura de la página de inicio: tarjetas, texto secundario y bordes */
+    --color-surface-dark: #162033;                    /* tarjeta sobre el fondo oscuro */
+    --color-muted-dark: #cbd5e1;                      /* texto secundario, gris claro */
+    --color-border-dark: rgba(248, 250, 252, 0.1);    /* borde fino sobre fondo oscuro */
+
+    /* Variaciones más oscuras del azul y del verde: solo se usan al
+       pasar el cursor por un botón y en degradados decorativos */
+    --color-primary-dark: #1a44bd;
+    --color-primary-deep: #1e3a8a;
+    --color-accent-dark: #11a393;
+    --color-accent-deep: #0f766e;
+
+    /* Rojo funcional: solo para errores y acciones peligrosas */
+    --color-error: #b91c1c;
+    --color-error-soft: rgba(185, 28, 28, 0.08);
+    --color-error-light: #f87171;                     /* el mismo aviso de error, sobre fondo oscuro */
+
+    /* Fondo oscuro con dos manchas de color (carrusel y login en el móvil) */
+    --fondo-decorado:
+        radial-gradient(circle at 12% 0%, rgba(29, 78, 216, 0.4), transparent 45%),
+        radial-gradient(circle at 90% 100%, rgba(20, 184, 166, 0.22), transparent 45%),
+        var(--color-dark);
+
+    /* Redondeo de esquinas */
+    --radius-sm: 6px;
+    --radius-md: 10px;
+    --radius-lg: 18px;
+    --radius-full: 999px;
+
+    /* Espacios */
+    --space-1: 4px;
+    --space-2: 8px;
+    --space-3: 12px;
+    --space-4: 16px;
+    --space-5: 24px;
+    --space-6: 32px;
+    --space-7: 48px;
+    --space-8: 72px;
+
+    /* Sombras */
+    --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.06), 0 1px 3px rgba(15, 23, 42, 0.08);
+    --shadow-md: 0 6px 16px rgba(15, 23, 42, 0.1);
+    --shadow-lg: 0 18px 40px rgba(15, 23, 42, 0.18);
+
+    /* Animaciones: duración y forma del movimiento */
+    --transition-fast: 150ms;
+    --transition-normal: 300ms;
+    --transition-slow: 600ms;
+    --ease: cubic-bezier(0.22, 0.61, 0.36, 1);
+
+    /* Ancho máximo del contenido */
+    --ancho: 1200px;
+}
 
 /* Hace que el relleno y el borde cuenten dentro del ancho de cada elemento */
 * {
     box-sizing: border-box;
 }
 
-/* Estilo general de la página. El flex en columna mantiene
-   el pie de página abajo aunque haya poco contenido. */
+/* ------------------------------------------------------------
+   2. BASE Y TIPOGRAFÍA
+   ------------------------------------------------------------ */
+
+/* Estilo general. El flex en columna mantiene el pie de página
+   abajo aunque haya poco contenido. */
 body {
     margin: 0;
-    font-family: Arial, sans-serif;
-    background-color: #f4f1ea;
-    color: #333;
+    font-family: Inter, "Segoe UI", Roboto, Arial, sans-serif;
+    font-size: 16px;
+    line-height: 1.5;
+    background-color: var(--color-light);
+    color: var(--color-text);
     display: flex;
     flex-direction: column;
     min-height: 100vh;
+    overflow-x: hidden;
 }
 
-/* Encabezado: título a la izquierda y menú a la derecha */
-header {
-    background-color: #2c3e50;
-    color: #fff;
-    padding: 15px 40px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    flex-wrap: wrap;
+h1,
+h2,
+h3,
+h4 {
+    line-height: 1.2;
+    color: var(--color-dark);
 }
 
-header h1 {
-    margin: 0;
-    font-size: 26px;
+a {
+    color: var(--color-primary);
 }
 
-nav a {
-    color: #fff;
-    text-decoration: none;
-    margin-left: 20px;
-    font-weight: bold;
+img {
+    max-width: 100%;
 }
 
-nav a:hover {
-    color: #f1c40f;
+/* Texto que solo leen los lectores de pantalla */
+.solo-lectores {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
 }
 
-/* Contenido principal: centrado y con un ancho máximo */
+/* Evita que un precio o el texto de un botón se partan en dos líneas */
+.sin-corte,
+.acciones-linea .btn {
+    white-space: nowrap;
+}
+
+/* Marca visible al moverse con el teclado. Sobre los fondos
+   oscuros la marca es verde azulada para que se distinga. */
+a:focus-visible,
+button:focus-visible,
+[tabindex]:focus-visible {
+    outline: 3px solid rgba(29, 78, 216, 0.55);
+    outline-offset: 2px;
+}
+
+header a:focus-visible,
+header button:focus-visible,
+.destacados button:focus-visible,
+.destacados [tabindex]:focus-visible {
+    outline-color: var(--color-accent);
+}
+
+/* ------------------------------------------------------------
+   3. ESTRUCTURA DE LA PÁGINA
+   ------------------------------------------------------------ */
+
+/* Contenido centrado y con un ancho máximo */
 main {
     flex: 1;
-    padding: 30px 40px;
-    max-width: 1200px;
     width: 100%;
+    max-width: var(--ancho);
     margin: 0 auto;
+    padding: var(--space-6) var(--space-5) var(--space-7);
 }
 
+/* Título de cada página */
 main h2 {
-    color: #2c3e50;
-    border-bottom: 3px solid #f1c40f;
-    padding-bottom: 8px;
+    margin: 0 0 6px;
+    font-size: 28px;
+    letter-spacing: -0.3px;
 }
 
-/* Página de inicio: bloque de bienvenida y botón "Ver catálogo" */
-.portada {
-    text-align: center;
-    padding: 80px 20px;
-}
-
-.portada h2 {
-    border: none;
-    font-size: 32px;
-}
-
-.portada p {
+main h3 {
     font-size: 18px;
-    margin-bottom: 30px;
 }
 
-.boton {
-    background-color: #2c3e50;
-    color: #fff;
-    padding: 12px 30px;
-    border-radius: 5px;
+/* Texto corto debajo del título que explica para qué sirve la página */
+.descripcion-pagina {
+    margin: 0 0 var(--space-5);
+    color: var(--color-text-soft);
+}
+
+/* Enlace "volver" */
+.volver {
+    display: inline-block;
+    margin-bottom: var(--space-4);
+    font-weight: 600;
     text-decoration: none;
-    font-weight: bold;
 }
 
-.boton:hover {
-    background-color: #f1c40f;
-    color: #2c3e50;
-}
-
-/* Buscador del catálogo: campo de texto y botones en una fila */
-.buscador {
-    display: flex;
-    gap: 10px;
-    margin-top: 20px;
-    flex-wrap: wrap;
-    align-items: center;
-}
-
-.buscador input {
-    flex: 1;
-    min-width: 200px;
-    padding: 10px;
-    border: 1px solid #ccc;
-    border-radius: 5px;
-    font-size: 15px;
-}
-
-.buscador button {
-    padding: 10px 25px;
-    background-color: #2c3e50;
-    color: #fff;
-    border: none;
-    border-radius: 5px;
-    font-size: 15px;
-    font-weight: bold;
-    cursor: pointer;
-}
-
-.buscador button:hover {
-    background-color: #f1c40f;
-    color: #2c3e50;
-}
-
-.buscador a {
-    color: #2c3e50;
-    font-weight: bold;
+.volver:hover {
+    text-decoration: underline;
 }
 
 /* Mensaje cuando no hay resultados */
 .sin-resultados {
-    margin-top: 25px;
-    font-size: 16px;
-    color: #666;
-}
-
-/* Catálogo: cuadrícula que ajusta el número de columnas
-   al ancho de la pantalla (mínimo 200px por tarjeta) */
-.catalogo {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: 25px;
-    margin-top: 25px;
-}
-
-/* Tarjeta de cada libro; se eleva un poco al pasar el ratón */
-.libro {
-    background-color: #fff;
-    border-radius: 8px;
-    padding: 15px;
+    margin: var(--space-5) 0;
+    padding: var(--space-5);
+    background-color: var(--color-surface);
+    border: 1px dashed var(--color-border);
+    border-radius: var(--radius-md);
+    color: var(--color-text-soft);
     text-align: center;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-    transition: transform 0.2s;
 }
 
-.libro:hover {
-    transform: translateY(-5px);
+/* Título de una sección que va encima de una tabla */
+.titulo-ticket {
+    margin: var(--space-5) 0 var(--space-3);
 }
 
-/* Portada: todas con la misma altura, recortadas sin deformarse */
-.libro img {
-    width: 100%;
-    height: 280px;
-    object-fit: cover;
-    border-radius: 5px;
-}
-
-.libro h3 {
-    font-size: 16px;
-    margin: 12px 0 6px;
-    color: #2c3e50;
-}
-
-.libro p {
-    margin: 0 0 8px;
-    color: #666;
+footer {
+    padding: var(--space-1) var(--space-4);
+    background-color: var(--color-dark);
+    border-top: 1px solid var(--color-border-dark);
+    color: var(--color-on-dark);
     font-size: 14px;
+    text-align: center;
 }
 
-/* Etiqueta amarilla con el año */
-.libro .anio {
-    font-size: 13px;
-    background-color: #f1c40f;
-    padding: 3px 10px;
-    border-radius: 10px;
-}
-
-/* Etiquetas de stock: verde si hay copias, rojo si está agotado */
-.disponible,
-.agotado {
-    display: inline-block;
-    font-size: 13px;
-    font-weight: bold;
-    padding: 3px 10px;
-    border-radius: 10px;
-}
-
-.libro .disponible,
-.libro .agotado {
-    margin: 10px 0 0;
-}
-
-.disponible {
-    background-color: #e8f8ee;
-    color: #27ae60;
-}
-
-.agotado {
-    background-color: #fdecea;
-    color: #c0392b;
-}
-
-/* Botón pequeño "Ver detalle" debajo de cada libro */
-.boton-detalle {
-    display: block;
-    margin-top: 12px;
-    padding: 6px 12px;
-    background-color: #2c3e50;
+/* ------------------------------------------------------------
+   4. CABECERA Y MENÚ
+   Una sola barra: el menú a la izquierda y el saludo a la
+   derecha. No lleva logo ni nombre del sitio. En pantallas
+   chicas, con JavaScript, el menú se pliega detrás de un botón
+   (ver la sección 14).
+   ------------------------------------------------------------ */
+/* La cabecera queda fija arriba al desplazarse por la página
+   ("sticky"): el menú siempre está a mano. */
+header {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    background-color: var(--color-dark);
+    box-shadow: 0 1px 0 var(--color-border-dark);
     color: #fff;
-    text-decoration: none;
-    font-size: 13px;
-    font-weight: bold;
-    border-radius: 5px;
 }
 
-.boton-detalle:hover {
-    background-color: #f1c40f;
-    color: #2c3e50;
+/* Como la cabecera tapa la parte de arriba de la pantalla, los
+   enlaces que saltan a un punto de la página (por ejemplo "Ver
+   detalle") dejan ese lugar libre para que no quede escondido. */
+html {
+    scroll-padding-top: 76px;
 }
 
-/* Detalle del libro: enlace para volver al catálogo */
-.volver {
-    display: inline-block;
-    color: #2c3e50;
-    font-weight: bold;
-    text-decoration: none;
-    margin-bottom: 20px;
-}
-
-.volver:hover {
-    color: #f1c40f;
-}
-
-/* Ficha del libro: portada e información lado a lado
-   (en pantallas pequeñas se colocan una debajo de otra) */
-.detalle {
+/* Fila de la barra. Usa un poco más de ancho que el contenido para
+   que los 11 enlaces del bibliotecario y el saludo entren en una
+   sola línea. */
+.cabecera {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 6px var(--space-3);
     display: flex;
-    gap: 40px;
-    background-color: #fff;
-    padding: 30px;
-    border-radius: 8px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2) var(--space-3);
 }
 
-.detalle img {
-    width: 280px;
-    max-width: 100%;
-    border-radius: 5px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+/* Saludo "Hola, nombre": siempre a la derecha */
+.usuario {
+    flex: none;
+    margin-left: auto;
+    padding-right: var(--space-3);
+    font-size: 13px;
+    color: var(--color-on-dark);
+    white-space: nowrap;
 }
 
-.detalle-info {
+/* Menú: ocupa todo el lugar libre de la barra. Con "flex-wrap" los
+   enlaces que no entran bajan a otra línea. */
+nav {
+    position: relative;
     flex: 1;
-    min-width: 250px;
-}
-
-.detalle-info h2 {
-    margin-top: 0;
-}
-
-.detalle-info h3 {
-    color: #2c3e50;
-    margin-top: 25px;
-}
-
-.detalle-info p {
-    line-height: 1.6;
-}
-
-/* Gestión de stock: tabla con todos los libros */
-.tabla-stock {
-    width: 100%;
-    border-collapse: collapse;
-    background-color: #fff;
-    margin-top: 20px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
-.tabla-stock th {
-    background-color: #2c3e50;
-    color: #fff;
-    padding: 12px;
-    text-align: left;
-}
-
-.tabla-stock td {
-    padding: 10px 12px;
-    border-bottom: 1px solid #eee;
-    vertical-align: middle;
-}
-
-.tabla-stock img {
-    width: 50px;
-    height: 70px;
-    object-fit: cover;
-    border-radius: 3px;
-}
-
-/* Formulario de cada fila: número de copias y botón Guardar */
-.form-stock {
     display: flex;
-    gap: 8px;
+    flex-wrap: wrap;
+    gap: 0 2px;
 }
 
-.form-stock input {
-    width: 80px;
-    padding: 6px;
-    border: 1px solid #ccc;
-    border-radius: 5px;
+nav a {
+    position: relative;
+    padding: 5px 12px;
+    border-radius: var(--radius-sm);
+    color: var(--color-on-dark);
+    font-size: 14px;
+    font-weight: 600;
+    text-decoration: none;
+    white-space: nowrap;
+    transition: color var(--transition-fast), background-color var(--transition-fast);
 }
 
-.form-stock button {
-    padding: 6px 15px;
-    background-color: #2c3e50;
+nav a:hover {
     color: #fff;
-    border: none;
-    border-radius: 5px;
-    font-weight: bold;
+    background-color: rgba(255, 255, 255, 0.08);
+}
+
+/* Enlace de la página en la que está el usuario: texto blanco y
+   una línea de color debajo */
+nav a.activo {
+    color: #fff;
+}
+
+nav a.activo::after,
+.nav-indicador {
+    height: 2px;
+    border-radius: 2px;
+    background-color: var(--color-accent);
+}
+
+nav a.activo::after {
+    content: "";
+    position: absolute;
+    left: 12px;
+    right: 12px;
+    bottom: 2px;
+}
+
+/* Con JavaScript la línea es un indicador que se desliza de un
+   enlace a otro, así que se oculta la línea fija */
+.js nav.con-indicador a.activo::after {
+    display: none;
+}
+
+.nav-indicador {
+    position: absolute;
+    left: 0;
+    top: 0;
+    opacity: 0;
+    pointer-events: none;
+    transition: transform var(--transition-normal) var(--ease), width var(--transition-normal) var(--ease), opacity var(--transition-fast);
+}
+
+/* "Cerrar sesión" se separa hacia la derecha */
+nav a.salir {
+    margin-left: auto;
+}
+
+/* Botón del menú para pantallas chicas (tres rayas) */
+.menu-boton {
+    display: none;
+    flex-direction: column;
+    justify-content: center;
+    gap: 5px;
+    width: 38px;
+    height: 38px;
+    padding: 0 9px;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    border-radius: var(--radius-sm);
+    background: transparent;
     cursor: pointer;
 }
 
-.form-stock button:hover {
-    background-color: #f1c40f;
-    color: #2c3e50;
+.menu-boton span {
+    display: block;
+    height: 2px;
+    border-radius: 2px;
+    background-color: #fff;
+    transition: transform var(--transition-normal) var(--ease), opacity var(--transition-fast);
 }
 
-/* Estrellas de valoración (en amarillo) */
-.estrellas {
-    color: #f1c40f;
-    font-size: 18px;
-    letter-spacing: 2px;
+/* Con el menú abierto las tres rayas forman una cruz */
+.abierto .menu-boton span:nth-child(1) {
+    transform: translateY(7px) rotate(45deg);
 }
 
-/* Valoración media en la ficha del libro */
-.valoracion {
-    color: #666;
+.abierto .menu-boton span:nth-child(2) {
+    opacity: 0;
 }
 
-/* Valoración media pequeña en las tarjetas del catálogo */
-.valoracion-tarjeta {
-    margin: 8px 0 0;
+.abierto .menu-boton span:nth-child(3) {
+    transform: translateY(-7px) rotate(-45deg);
+}
+
+/* ------------------------------------------------------------
+   5. BOTONES
+   Todos los botones y enlaces con forma de botón usan la clase
+   "btn" más una variante de color:
+     btn-primary    azul: acción principal
+     btn-secondary  blanco: acción menos importante
+     btn-success    verde azulado: comprar, finalizar, reactivar
+     btn-danger     rojo: eliminar, dar de baja, vaciar
+   y, si hace falta, un tamaño: btn-sm (chico) o btn-lg (grande).
+   ------------------------------------------------------------ */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 10px 18px;
+    border: 1px solid transparent;
+    border-radius: var(--radius-sm);
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1.3;
+    text-align: center;
+    text-decoration: none;
+    cursor: pointer;
+    transition: background-color var(--transition-fast), border-color var(--transition-fast), box-shadow var(--transition-fast), transform var(--transition-fast);
+}
+
+/* Al pulsar, el botón se hunde apenas */
+.btn:active {
+    transform: translateY(1px);
+}
+
+.btn-sm {
+    padding: 6px 12px;
     font-size: 13px;
-    color: #666;
 }
 
-.valoracion-tarjeta .estrellas {
+.btn-lg {
+    padding: 13px 24px;
     font-size: 15px;
 }
 
-/* Sección de reseñas debajo de la ficha */
-.resenas {
-    margin-top: 40px;
+.btn-primary {
+    background-color: var(--color-primary);
+    color: #fff;
 }
 
-/* Formulario para escribir la reseña */
-.form-resena {
-    background-color: #fff;
-    padding: 25px;
-    border-radius: 8px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+.btn-primary:hover {
+    background-color: var(--color-primary-dark);
+    box-shadow: 0 4px 12px rgba(29, 78, 216, 0.28);
+}
+
+.btn-secondary {
+    background-color: var(--color-surface);
+    border-color: var(--color-border);
+    color: var(--color-dark);
+}
+
+.btn-secondary:hover {
+    background-color: var(--color-light);
+    border-color: var(--color-primary);
+}
+
+.btn-success {
+    background-color: var(--color-accent);
+    color: var(--color-dark);
+}
+
+.btn-success:hover {
+    background-color: var(--color-accent-dark);
+    box-shadow: 0 4px 12px rgba(20, 184, 166, 0.32);
+}
+
+/* Peligro: borde rojo; se rellena al pasar el cursor. En el
+   diálogo de confirmación va relleno desde el principio. */
+.btn-danger {
+    background-color: var(--color-surface);
+    border-color: rgba(185, 28, 28, 0.3);
+    color: var(--color-error);
+}
+
+.btn-danger:hover,
+.dialogo .btn-danger {
+    background-color: var(--color-error);
+    border-color: var(--color-error);
+    color: #fff;
+}
+
+/* Botón deshabilitado: en gris y sin poder pulsarse */
+.btn:disabled {
+    background-color: var(--color-dark-soft);
+    border-color: transparent;
+    color: var(--color-text-soft);
+    box-shadow: none;
+    cursor: not-allowed;
+}
+
+/* Botón mientras se envía un formulario: un círculo que gira */
+.enviando {
+    pointer-events: none;
+    opacity: 0.85;
+}
+
+.enviando::before {
+    content: "";
+    width: 14px;
+    height: 14px;
+    border: 2px solid currentColor;
+    border-right-color: transparent;
+    border-radius: 50%;
+    animation: girar 700ms linear infinite;
+}
+
+/* ------------------------------------------------------------
+   6. FORMULARIOS
+   Todos los campos del sitio tienen la misma altura, el mismo
+   borde y la misma marca al hacer clic en ellos.
+   ------------------------------------------------------------ */
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="number"],
+input[type="file"],
+select,
+textarea {
+    width: 100%;
+    min-height: 44px;
+    padding: 10px 12px;
+    border: 1px solid rgba(15, 23, 42, 0.22);
+    border-radius: var(--radius-sm);
+    background-color: var(--color-surface);
+    color: var(--color-text);
+    font-family: inherit;
+    font-size: 15px;
+    transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+textarea {
+    resize: vertical;
+}
+
+input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--color-primary);
+}
+
+/* Campo seleccionado: borde azul y un halo suave */
+input:focus,
+select:focus,
+textarea:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px rgba(29, 78, 216, 0.18);
+}
+
+label {
+    display: block;
+    margin-bottom: 6px;
+    font-size: 14px;
+    font-weight: 600;
+    transition: color var(--transition-fast);
+}
+
+/* La etiqueta del campo en el que se está escribiendo se pone azul */
+.campo-activo > label,
+label.campo-activo {
+    color: var(--color-primary);
+}
+
+/* Texto de ayuda pequeño debajo de un campo */
+.ayuda {
+    margin: 6px 0 0;
+    font-size: 13px;
+    color: var(--color-text-soft);
+}
+
+/* --- Formulario angosto: login, registro y confirmar compra --- */
+.formulario {
+    max-width: 420px;
+    margin: var(--space-5) auto;
+    padding: var(--space-6);
     display: flex;
     flex-direction: column;
-    margin-bottom: 25px;
+}
+
+.formulario h2 {
+    margin: 0 0 var(--space-5);
+    text-align: center;
+    font-size: 24px;
+}
+
+.formulario label {
+    margin-top: var(--space-3);
+}
+
+.formulario .btn {
+    margin-top: var(--space-5);
+}
+
+.formulario p {
+    text-align: center;
+    margin: var(--space-4) 0 0;
+}
+
+.formulario .exito,
+.formulario .error {
+    text-align: left;
+    margin: 0 0 var(--space-2);
+}
+
+.formulario a,
+.buscador a {
+    font-weight: 600;
+}
+
+/* Campo de contraseña con el botón "Mostrar" adentro */
+.campo-clave {
+    position: relative;
+}
+
+.campo-clave input {
+    padding-right: 86px;
+}
+
+.ver-clave {
+    position: absolute;
+    top: 50%;
+    right: 6px;
+    transform: translateY(-50%);
+    padding: 6px 10px;
+    border: none;
+    border-radius: var(--radius-sm);
+    background-color: var(--color-dark-soft);
+    color: var(--color-dark);
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+/* Indicador de fortaleza de la contraseña (registro) */
+.fortaleza {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    margin-top: var(--space-2);
+    font-size: 13px;
+    color: var(--color-text-soft);
+}
+
+.fortaleza-barra {
+    flex: 1;
+    height: 6px;
+    border-radius: var(--radius-full);
+    background-color: var(--color-dark-soft);
+    overflow: hidden;
+}
+
+.fortaleza-barra span {
+    display: block;
+    height: 100%;
+    background-color: var(--color-error);
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform var(--transition-normal) var(--ease), background-color var(--transition-normal);
+}
+
+.fortaleza[data-nivel="1"] .fortaleza-barra span {
+    transform: scaleX(0.33);
+}
+
+.fortaleza[data-nivel="2"] .fortaleza-barra span {
+    transform: scaleX(0.66);
+    background-color: var(--color-primary);
+}
+
+.fortaleza[data-nivel="3"] .fortaleza-barra span {
+    transform: scaleX(1);
+    background-color: var(--color-accent);
+}
+
+/* --- Formulario ancho en dos columnas: libros, usuarios y perfil --- */
+.form-libro {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: var(--space-4) var(--space-5);
+    margin: 0 0 var(--space-6);
+    padding: var(--space-5);
+}
+
+/* El título y los campos anchos ocupan todas las columnas */
+.form-libro h3,
+.form-libro .campo-ancho {
+    grid-column: 1 / -1;
+}
+
+.form-libro h3 {
+    margin: 0;
+    padding-bottom: var(--space-3);
+    border-bottom: 1px solid var(--color-border);
+}
+
+.form-libro p {
+    margin: 4px 0;
+}
+
+/* Casillas "Formato físico" y "Formato digital": la casilla y su
+   texto en la misma línea */
+.form-libro .casillas {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px 28px;
+}
+
+.form-libro .casillas label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 0;
+    font-weight: 500;
+    cursor: pointer;
+}
+
+/* Botón de guardar y enlace de cancelar, en una fila */
+.botones-libro {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--space-3) var(--space-5);
+}
+
+.botones-libro .volver {
+    margin-bottom: 0;
+}
+
+/* --- Buscador del catálogo: texto, categoría y botón en una fila --- */
+.buscador {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+    margin: 0 0 var(--space-4);
+    padding: var(--space-3);
+}
+
+.buscador input {
+    flex: 1;
+    min-width: 180px;
+}
+
+/* Con max-width el desplegable no se sale de la pantalla en un móvil */
+.buscador select {
+    width: auto;
+    max-width: 100%;
+}
+
+/* --- Formulario para escribir una reseña --- */
+.form-resena {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: var(--space-5);
+    padding: var(--space-5);
 }
 
 .form-resena h3 {
-    margin-top: 0;
-    color: #2c3e50;
+    margin: 0 0 4px;
 }
 
 .form-resena label {
-    margin-top: 10px;
-    font-weight: bold;
-}
-
-.form-resena select,
-.form-resena textarea {
-    margin-top: 5px;
-    padding: 10px;
-    border: 1px solid #ccc;
-    border-radius: 5px;
-    font-size: 15px;
-    font-family: inherit;
+    margin-top: var(--space-3);
 }
 
 .form-resena select {
     max-width: 220px;
 }
 
-.form-resena button {
-    margin-top: 15px;
+.form-resena .btn {
+    margin-top: var(--space-4);
     align-self: flex-start;
-    padding: 10px 25px;
-    background-color: #2c3e50;
+}
+
+/* --- Formulario de cada fila de stock: número de copias y Guardar --- */
+.form-stock {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+.form-stock input {
+    width: 90px;
+    min-height: 36px;
+    padding: 6px 10px;
+}
+
+/* ------------------------------------------------------------
+   7. TARJETAS Y COMPONENTES
+   ------------------------------------------------------------ */
+
+/* --- Tarjeta: el aspecto que comparten todos los recuadros del
+   sitio (fondo blanco, borde fino, esquinas redondeadas y una
+   sombra suave). Cada componente agrega después lo suyo. --- */
+.buscador,
+.formulario,
+.form-libro,
+.form-resena,
+.form-caja,
+.tabla-scroll,
+.libro,
+.libro-mini,
+.detalle,
+.resena {
+    background-color: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+}
+
+/* Variantes de la tarjeta */
+.detalle,
+.formulario {
+    border-radius: var(--radius-lg);
+}
+
+.formulario {
+    box-shadow: var(--shadow-md);
+}
+
+.form-caja {
+    border-left: 4px solid var(--color-primary);
+}
+
+.resena {
+    border-left: 4px solid var(--color-accent);
+}
+
+/* Tarjetas que reaccionan al cursor */
+.libro-mini,
+.bloque,
+.paso {
+    transition: transform var(--transition-normal) var(--ease), box-shadow var(--transition-normal), border-color var(--transition-normal);
+}
+
+.libro-mini:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-md);
+}
+
+.libro:hover,
+.libro-mini:hover {
+    border-color: rgba(29, 78, 216, 0.35);
+}
+
+/* Tarjeta oscura: la versión de la tarjeta para la zona oscura de
+   la página de inicio (bloques y pasos). Mismo borde fino
+   y mismas esquinas, sobre un fondo apenas más claro que el de la
+   zona. Al pasar el cursor sube un poco y el borde se nota más. */
+.bloque,
+.paso {
+    background-color: var(--color-surface-dark);
+    border: 1px solid var(--color-border-dark);
+    border-radius: var(--radius-md);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.18);
+}
+
+.bloque:hover,
+.paso:hover {
+    transform: translateY(-3px);
+    border-color: rgba(20, 184, 166, 0.45);
+    box-shadow: 0 12px 26px rgba(0, 0, 0, 0.26);
+}
+
+/* --- Etiquetas (badges): pastillas pequeñas para estados y tipos:
+   Físico, Digital, Disponible, Agotado, Activo, Inactivo,
+   Cliente, Bibliotecario --- */
+.badge,
+.disponible,
+.agotado {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 2px 10px;
+    border-radius: var(--radius-full);
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1.6;
+    white-space: nowrap;
+}
+
+/* Disponible, activo, ya comprado, digital: fondo verde azulado */
+.disponible,
+.badge-digital {
+    background-color: var(--color-accent-soft);
+    color: var(--color-dark);
+}
+
+.disponible::before {
+    content: "";
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background-color: var(--color-accent);
+}
+
+/* Agotado, inactivo */
+.agotado {
+    background-color: var(--color-error-soft);
+    color: var(--color-error);
+}
+
+.badge-fisico {
+    background-color: var(--color-primary-soft);
+    color: var(--color-primary);
+}
+
+.badge-cliente {
+    background-color: var(--color-dark-soft);
+    color: var(--color-text-soft);
+}
+
+.badge-bibliotecario {
+    background-color: var(--color-dark);
     color: #fff;
+}
+
+/* Categoría del libro: texto pequeño en mayúsculas */
+.categoria {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.7px;
+    text-transform: uppercase;
+    color: var(--color-primary);
+}
+
+/* Estrellas de valoración */
+.estrellas {
+    color: var(--color-accent);
+    letter-spacing: 1px;
+}
+
+/* --- Avisos dentro de la página: verde azulado si salió bien y
+   rojo para los errores --- */
+.exito,
+.error {
+    margin: 0 0 var(--space-4);
+    padding: 12px 16px;
+    border-radius: var(--radius-md);
+    border-left: 4px solid var(--color-accent);
+    background-color: var(--color-accent-soft);
+    font-size: 15px;
+}
+
+.error {
+    background-color: var(--color-error-soft);
+    border-color: var(--color-error);
+    color: var(--color-error);
+}
+
+/* Aviso de PHP que ya se muestra como mensaje flotante: main.js lo
+   oculta para que no se vea dos veces. Sin JavaScript queda visible.
+   (La misma regla mantiene ocultos, hasta que main.js los muestra,
+   el medidor de contraseña y los botones del carrusel.) */
+.exito[hidden],
+.error[hidden],
+.fortaleza[hidden],
+.carrusel-controles[hidden] {
+    display: none;
+}
+
+/* --- Mensajes flotantes (los crea main.js): aparecen abajo a la
+   derecha y se van solos, salvo los de error --- */
+.mensajes {
+    position: fixed;
+    right: var(--space-4);
+    bottom: var(--space-4);
+    z-index: 60;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    width: min(360px, calc(100vw - 32px));
+    pointer-events: none;
+}
+
+.mensaje {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-3);
+    padding: 12px 14px;
+    background-color: var(--color-dark);
+    border-left: 4px solid var(--color-primary);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-lg);
+    color: #fff;
+    font-size: 14px;
+    pointer-events: auto;
+}
+
+.mensaje-exito {
+    border-color: var(--color-accent);
+}
+
+.mensaje-error {
+    border-color: var(--color-error-light);
+}
+
+.mensaje.saliendo {
+    opacity: 0;
+    transform: translateY(8px);
+    transition: opacity var(--transition-normal), transform var(--transition-normal);
+}
+
+.mensaje p {
+    flex: 1;
+    margin: 0;
+}
+
+.mensaje button {
+    padding: 0 4px;
     border: none;
-    border-radius: 5px;
-    font-weight: bold;
+    background: none;
+    color: var(--color-on-dark);
+    font-size: 18px;
+    line-height: 1;
     cursor: pointer;
 }
 
-.form-resena button:hover {
-    background-color: #f1c40f;
-    color: #2c3e50;
+/* Tilde que se dibuja cuando una venta o una compra se registra */
+.tilde {
+    width: 20px;
+    height: 20px;
+    margin-right: 8px;
+    vertical-align: -4px;
+    color: var(--color-accent);
+}
+
+.tilde path {
+    stroke-dasharray: 24;
+    stroke-dashoffset: 24;
+    animation: dibujar 500ms 200ms var(--ease) forwards;
+}
+
+/* --- Diálogo de confirmación para las acciones que quitan algo --- */
+.dialogo {
+    width: min(420px, calc(100vw - 32px));
+    padding: var(--space-5);
+    border: none;
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
+    color: var(--color-text);
+}
+
+.dialogo::backdrop {
+    background-color: rgba(15, 23, 42, 0.55);
+}
+
+.dialogo h3 {
+    margin: 0 0 var(--space-2);
+}
+
+.dialogo p {
+    margin: 0 0 var(--space-5);
+    color: var(--color-text-soft);
+}
+
+.dialogo-botones {
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--space-2);
+}
+
+/* --- Portadas: cada portada es un marco con dos capas: abajo el
+   reemplazo propio (icono, iniciales y título) y arriba la imagen.
+   Si el libro no tiene imagen, o el archivo no existe, se ve el
+   reemplazo. --- */
+.portada-marco {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 2 / 3;
+    overflow: hidden;
+    background-color: var(--color-dark);
+}
+
+/* Reemplazo: fondo oscuro sobrio con un borde de color a la
+   izquierda, como el lomo de un libro */
+.portada-vacia {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 14px;
+    background:
+        linear-gradient(90deg, var(--color-accent) 0, var(--color-accent) 6px, transparent 6px),
+        linear-gradient(160deg, rgba(248, 250, 252, 0.08) 0%, transparent 70%),
+        var(--color-dark);
+    color: var(--color-on-dark);
+    text-align: center;
+}
+
+.portada-inicial {
+    font-size: 34px;
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: 1px;
+    color: #fff;
+}
+
+.portada-titulo {
+    max-height: 3.9em;
+    overflow: hidden;
+    font-size: 12px;
+    line-height: 1.3;
+}
+
+/* La imagen tapa el reemplazo. "object-fit: cover" recorta lo
+   que sobra sin deformarla. */
+.portada-marco img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: opacity var(--transition-slow) var(--ease), transform var(--transition-slow) var(--ease);
+}
+
+/* Mientras la imagen carga (con JavaScript): la imagen está
+   transparente y sobre el marco pasa un brillo */
+.js .portada-marco.cargando img {
+    opacity: 0;
+}
+
+.js .portada-marco.cargando::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(100deg, transparent 30%, rgba(255, 255, 255, 0.16) 50%, transparent 70%);
+    transform: translateX(-100%);
+    animation: brillo 1.4s linear infinite;
+}
+
+/* Portadas en miniatura (tablas y libros relacionados): solo las
+   iniciales, sin icono ni título */
+.tabla-stock .portada-marco,
+.libro-mini .portada-marco {
+    border-radius: 4px;
+}
+
+.tabla-stock .portada-titulo,
+.tabla-stock .portada-vacia svg,
+.libro-mini .portada-titulo,
+.libro-mini .portada-vacia svg {
+    display: none;
+}
+
+/* ------------------------------------------------------------
+   8. INICIO, CATÁLOGO Y CARRUSEL
+   ------------------------------------------------------------ */
+
+/* --- Inicio: bloque principal, con el texto a la izquierda y
+   libros en 3D a la derecha --- */
+.hero {
+    display: grid;
+    grid-template-columns: 1.1fr 0.9fr;
+    align-items: center;
+    gap: var(--space-6);
+    padding: var(--space-6);
+    background:
+        radial-gradient(circle at 85% 20%, rgba(20, 184, 166, 0.22), transparent 45%),
+        radial-gradient(circle at 70% 90%, rgba(29, 78, 216, 0.35), transparent 50%),
+        var(--color-dark);
+    border-radius: var(--radius-lg);
+    color: #fff;
+    overflow: hidden;
+}
+
+.hero-etiqueta {
+    margin: 0 0 var(--space-3);
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 1.4px;
+    text-transform: uppercase;
+    color: var(--color-accent);
+}
+
+.hero h2 {
+    margin: 0 0 var(--space-4);
+    font-size: 46px;
+    letter-spacing: -1px;
+    color: #fff;
+}
+
+.hero-texto > p {
+    max-width: 520px;
+    margin: 0;
+    font-size: 17px;
+    color: var(--color-on-dark);
+}
+
+.hero-botones {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-3);
+    margin-top: var(--space-5);
+}
+
+/* Sobre el fondo oscuro, el botón secundario es transparente */
+.hero .btn-secondary {
+    background-color: transparent;
+    border-color: rgba(255, 255, 255, 0.35);
+    color: #fff;
+}
+
+.hero .btn-secondary:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    border-color: #fff;
+}
+
+/* Composición de libros en 3D. "perspective" da la profundidad. */
+.hero-libros {
+    position: relative;
+    height: 300px;
+    perspective: 1100px;
+}
+
+.hero-libro {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 150px;
+    border-radius: 4px 10px 10px 4px;
+    box-shadow: var(--shadow-lg);
+    overflow: hidden;
+    transform-style: preserve-3d;
+}
+
+/* Cada libro tiene su lugar y su giro (--giro), y flota a su
+   propio ritmo */
+.hero-libro:nth-child(1) {
+    --giro: translate(-150%, -52%) rotateY(28deg) rotateZ(-4deg);
+    animation: flotar 9s ease-in-out infinite;
+}
+
+.hero-libro:nth-child(2) {
+    --giro: translate(-88%, -40%) rotateY(18deg) translateZ(40px);
+    animation: flotar 11s ease-in-out -3s infinite;
+}
+
+.hero-libro:nth-child(3) {
+    --giro: translate(-14%, -58%) rotateY(-14deg) translateZ(70px);
+    animation: flotar 10s ease-in-out -6s infinite;
+}
+
+.hero-libro:nth-child(4) {
+    --giro: translate(46%, -44%) rotateY(-26deg) rotateZ(3deg);
+    animation: flotar 12s ease-in-out -2s infinite;
+}
+
+/* --- Inicio: las dos zonas de la página. El "main" del inicio no
+   tiene ancho máximo ni relleno: arriba va el bloque principal
+   sobre el fondo claro y abajo la zona oscura, que ocupa todo el
+   ancho de la pantalla. El contenido de las dos queda centrado
+   con el mismo ancho que el resto del sitio. --- */
+main.inicio {
+    display: flex;
+    flex-direction: column;
+    max-width: none;
+    padding: 0;
+    /* Fondo claro alrededor del bloque principal */
+    background-color: var(--color-fondo);
+}
+
+.inicio-arriba,
+.zona-interior {
+    width: 100%;
+    max-width: var(--ancho);
+    margin: 0 auto;
+    padding: 0 var(--space-5);
+}
+
+.inicio-arriba {
+    padding-top: var(--space-5);
+    padding-bottom: var(--space-5);
+}
+
+/* Zona oscura: mismo color que la cabecera y el pie. La transición
+   con la parte clara es un borde fino y un degradado azul muy
+   suave en los primeros píxeles; no hay cortes ni franjas. */
+.zona-oscura {
+    flex: 1;
+    padding: var(--space-5) 0 var(--space-7);
+    background:
+        linear-gradient(180deg, rgba(29, 78, 216, 0.12), transparent 180px),
+        var(--color-dark);
+    border-top: 1px solid var(--color-border-dark);
+    color: var(--color-light);
+}
+
+/* Textos de la zona oscura: títulos casi blancos, lo demás gris claro */
+.zona-oscura h2,
+.zona-oscura h3 {
+    color: var(--color-light);
+}
+
+.zona-oscura p {
+    color: var(--color-muted-dark);
+}
+
+/* --- Inicio: secciones "Explora tu biblioteca" y "Cómo funciona".
+   Las tarjetas de cada una van en una fila de cuatro. La primera
+   sección empieza pegada al comienzo de la zona oscura; la
+   separación grande va solo entre una sección y la siguiente. --- */
+.bloques,
+.pasos {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--space-4);
+}
+
+.seccion + .seccion {
+    margin-top: var(--space-7);
+}
+
+.seccion > h2,
+.seccion > .descripcion-pagina {
+    text-align: center;
+}
+
+.seccion > h2 {
+    margin-bottom: var(--space-2);
+}
+
+.bloques,
+.pasos {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.bloque,
+.paso {
+    padding: var(--space-5);
+}
+
+.bloque h3,
+.paso h3 {
+    margin: 0 0 6px;
+    font-size: 17px;
+}
+
+.bloque p,
+.paso p {
+    margin: 0;
+    font-size: 14px;
+}
+
+/* Icono dentro de un cuadrado de color: azul con el dibujo claro
+   y, en los bloques pares, verde azulado */
+.icono {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    margin-bottom: var(--space-3);
+    border-radius: var(--radius-md);
+    background-color: var(--color-primary);
+    color: var(--color-light);
+}
+
+.bloque:nth-child(even) .icono {
+    background-color: var(--color-accent-soft);
+    color: var(--color-accent);
+}
+
+/* "Cómo funciona": pasos numerados */
+.paso {
+    position: relative;
+    padding-top: var(--space-6);
+}
+
+.paso-numero {
+    position: absolute;
+    top: -16px;
+    left: var(--space-5);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background-color: var(--color-accent);
+    box-shadow: 0 0 0 4px var(--color-dark);
+    color: var(--color-dark);
+    font-weight: 700;
+}
+
+/* --- Catálogo: carrusel de destacados. Sin JavaScript es una fila
+   de tarjetas que se desplaza de lado. Con JavaScript es un
+   carrusel en 3D: la tarjeta activa va al centro y las vecinas
+   quedan a los lados, giradas y más lejos. --- */
+.destacados {
+    margin: 0 0 var(--space-5);
+    padding: 20px var(--space-5);
+    background: var(--fondo-decorado);
+    border-radius: var(--radius-lg);
+    color: #fff;
+}
+
+.destacados-cabecera {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: var(--space-3);
+    margin-bottom: var(--space-3);
+}
+
+.destacados h3 {
+    margin: 0;
+    font-size: 22px;
+    color: #fff;
+}
+
+/* Fila de tarjetas (sin JavaScript) */
+.carrusel {
+    position: relative;
+    outline-offset: 6px;
+}
+
+.carrusel-pista {
+    display: flex;
+    gap: var(--space-4);
+    overflow-x: auto;
+    padding-bottom: var(--space-3);
+    scroll-snap-type: x mandatory;
+}
+
+/* Tarjeta de un libro destacado */
+.destacado {
+    flex: 0 0 230px;
+    scroll-snap-align: center;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: var(--space-3);
+    background-color: var(--color-surface);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-lg);
+    color: var(--color-text);
+}
+
+.destacado .portada-marco {
+    width: 150px;
+    margin: 0 auto 6px;
+    border-radius: var(--radius-sm);
+}
+
+.destacado h4 {
+    margin: 0;
+    font-size: 16px;
+    line-height: 1.25;
+}
+
+.destacado p {
+    margin: 0;
+    font-size: 13px;
+    color: var(--color-text-soft);
+}
+
+.destacado .precio {
+    font-size: 15px;
+    color: var(--color-dark);
+}
+
+/* El botón queda siempre al pie de la tarjeta */
+.destacado .btn {
+    margin-top: auto;
+}
+
+/* Carrusel en 3D (solo con JavaScript). "perspective" es la
+   distancia desde la que se mira la escena: da la sensación de
+   profundidad. "overflow: hidden" evita que las tarjetas de los
+   lados ensanchen la página. */
+.js .carrusel {
+    perspective: 1300px;
+    overflow: hidden;
+    touch-action: pan-y;
+    padding: var(--space-2) 0 var(--space-4);
+}
+
+.js .carrusel-pista {
+    position: relative;
+    display: block;
+    height: 452px;
+    overflow: visible;
+    padding: 0;
+    transform-style: preserve-3d;
+}
+
+/* Todas las tarjetas se apilan en el centro y main.js anota en
+   cada una su posición (data-pos). En escritorio se ven 5: la
+   activa (0), dos a la izquierda (-1 y -2) y dos a la derecha
+   (1 y 2). "--paso" es la distancia entre una tarjeta y la
+   siguiente: se ajusta según el ancho de la pantalla (sección 14)
+   para aprovechar todo el bloque sin que se tapen. */
+.js .carrusel-pista {
+    --paso: 275px;
+}
+
+.js .destacado {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    width: 230px;
+    height: 440px;
+    margin-left: -115px;
+    opacity: 0;
+    pointer-events: none;
+    transition: transform var(--transition-slow) var(--ease), opacity var(--transition-slow) var(--ease);
+}
+
+/* Activa: al centro, al frente y de tamaño completo */
+.js .destacado.es-activa {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateX(0) translateZ(0) rotateY(0);
+}
+
+/* Las cuatro de los lados: se pueden pulsar para traerlas al centro */
+.js .destacado[data-pos="-1"],
+.js .destacado[data-pos="1"],
+.js .destacado[data-pos="-2"],
+.js .destacado[data-pos="2"] {
+    pointer-events: auto;
+    cursor: pointer;
+}
+
+/* Las vecinas (-1 y 1): giradas, un poco más chicas y más tenues */
+.js .destacado[data-pos="-1"],
+.js .destacado[data-pos="1"] {
+    opacity: 0.85;
+}
+
+.js .destacado[data-pos="-1"] {
+    transform: translateX(calc(var(--paso) * -1)) translateZ(-120px) rotateY(24deg) scale(0.9);
+}
+
+.js .destacado[data-pos="1"] {
+    transform: translateX(var(--paso)) translateZ(-120px) rotateY(-24deg) scale(0.9);
+}
+
+/* Las de los extremos (-2 y 2): más giradas, más chicas y más tenues */
+.js .destacado[data-pos="-2"],
+.js .destacado[data-pos="2"] {
+    opacity: 0.55;
+}
+
+.js .destacado[data-pos="-2"] {
+    transform: translateX(calc(var(--paso) * -2.05)) translateZ(-240px) rotateY(34deg) scale(0.82);
+}
+
+.js .destacado[data-pos="2"] {
+    transform: translateX(calc(var(--paso) * 2.05)) translateZ(-240px) rotateY(-34deg) scale(0.82);
+}
+
+/* Las que están por entrar o acaban de salir (-3 y 3): invisibles */
+.js .destacado[data-pos="-3"] {
+    transform: translateX(calc(var(--paso) * -2.9)) translateZ(-380px) rotateY(44deg) scale(0.7);
+}
+
+.js .destacado[data-pos="3"] {
+    transform: translateX(calc(var(--paso) * 2.9)) translateZ(-380px) rotateY(-44deg) scale(0.7);
+}
+
+/* En las tarjetas de los lados no se puede pulsar el botón */
+.js .destacado:not(.es-activa) .btn {
+    pointer-events: none;
+}
+
+/* Controles: anterior, pausa y siguiente */
+.carrusel-controles {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+.carrusel-controles button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    padding: 0;
+    border: 1px solid rgba(255, 255, 255, 0.28);
+    border-radius: 50%;
+    background-color: rgba(255, 255, 255, 0.06);
+    color: #fff;
+    cursor: pointer;
+    transition: background-color var(--transition-fast), border-color var(--transition-fast);
+}
+
+.carrusel-controles button:hover {
+    background-color: rgba(255, 255, 255, 0.16);
+    border-color: #fff;
+}
+
+/* Indicadores: un punto por cada libro destacado */
+.carrusel-puntos {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 4px;
+}
+
+.carrusel-puntos button {
+    width: 26px;
+    height: 26px;
+    padding: 0;
+    border: none;
+    background: none;
+    cursor: pointer;
+}
+
+.carrusel-puntos button::before {
+    content: "";
+    display: block;
+    width: 8px;
+    height: 8px;
+    margin: 0 auto;
+    border-radius: var(--radius-full);
+    background-color: rgba(255, 255, 255, 0.35);
+    transition: width var(--transition-normal) var(--ease), background-color var(--transition-normal);
+}
+
+.carrusel-puntos button[aria-current="true"]::before {
+    width: 22px;
+    background-color: var(--color-accent);
+}
+
+/* --- Catálogo: la página del catálogo usa un poco más de ancho
+   que el resto del sitio (solo ella), para que entren 5 libros
+   por fila y 5 destacados. Sigue centrada. --- */
+main.ancho-catalogo {
+    max-width: 1400px;
+    padding-top: 20px;
+}
+
+/* La parte de arriba del catálogo es compacta, para que el carrusel
+   y los libros se vean antes: el título queda cerca de la barra, el
+   subtítulo pegado al título y el buscador cerca del subtítulo.
+   Separaciones de 12, 16, 20 y 24 px. */
+.ancho-catalogo > h2 {
+    margin-bottom: 2px;
+}
+
+.ancho-catalogo > .descripcion-pagina {
+    margin-bottom: var(--space-3);
+}
+
+/* Cuadrícula: 5 columnas en escritorio, 3 y 2 en pantallas
+   medianas y 1 en el móvil (ver la sección 14). Todas las tarjetas
+   de una fila tienen la misma altura. */
+.catalogo {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: var(--space-4);
+}
+
+/* Tarjeta de cada libro. Es una columna: portada arriba, datos en
+   el medio y el botón siempre abajo.
+   Las variables --rx, --ry y --ty las cambia main.js para inclinar
+   y levantar la tarjeta según dónde está el cursor. */
+.libro {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    transform: perspective(900px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg)) translateY(var(--ty, 0px));
+    transition: transform var(--transition-normal) var(--ease), box-shadow var(--transition-normal), border-color var(--transition-normal);
+}
+
+.libro:hover {
+    box-shadow: var(--shadow-lg);
+}
+
+/* Mientras el cursor se mueve sobre la tarjeta, la inclinación
+   sigue al cursor sin demora */
+.libro.inclinando {
+    transition: box-shadow var(--transition-normal), border-color var(--transition-normal);
+}
+
+/* La portada se agranda apenas al pasar el cursor */
+.libro:hover .portada-marco img {
+    transform: scale(1.03);
+}
+
+.libro-cuerpo {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    gap: 6px;
+    padding: 12px 14px 14px;
+}
+
+.libro h3 {
+    margin: 0;
+    font-size: 15px;
+}
+
+.libro p {
+    margin: 0;
+}
+
+.libro .autor {
+    font-size: 14px;
+    color: var(--color-text-soft);
+}
+
+/* Año de publicación, al lado del autor */
+.libro .anio {
+    white-space: nowrap;
+}
+
+/* Valoración media pequeña en las tarjetas */
+.valoracion-tarjeta {
+    font-size: 13px;
+    color: var(--color-text-soft);
+}
+
+/* Bloque de formatos y precios, separado por una línea. Con
+   "margin-top: auto" se va al pie de la tarjeta junto con el
+   botón: así los botones de una misma fila quedan alineados
+   aunque un título ocupe más líneas que otro. */
+.libro-formatos {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-top: auto;
+    padding-top: 10px;
+    border-top: 1px solid var(--color-border);
+}
+
+.libro-formatos + .btn {
+    margin-top: var(--space-3);
+}
+
+/* Una línea por formato: etiqueta, precio y (si es físico) el stock */
+.formato {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px 8px;
+}
+
+.libro .formato {
+    font-size: 14px;
+}
+
+.formato .precio {
+    font-weight: 700;
+}
+
+/* ------------------------------------------------------------
+   9. FICHA DEL LIBRO Y RESEÑAS
+   ------------------------------------------------------------ */
+
+/* Fondo de la página de la ficha: gris claro, para que las
+   tarjetas blancas se destaquen. Solo cambia el fondo exterior. */
+body.pagina-libro {
+    background-color: var(--color-fondo);
+}
+
+/* Ficha: portada a la izquierda e información a la derecha
+   (en el móvil, una debajo de la otra) */
+.detalle {
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    gap: var(--space-6);
+    align-items: start;
+    padding: var(--space-6);
+}
+
+/* Portada grande con un efecto 3D suave: main.js cambia --rx y --ry */
+.detalle-portada {
+    perspective: 900px;
+}
+
+.detalle-portada .portada-marco {
+    border-radius: 4px 12px 12px 4px;
+    box-shadow: var(--shadow-lg);
+    transform: rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg));
+    transition: transform var(--transition-normal) var(--ease);
+}
+
+.detalle-portada .portada-inicial {
+    font-size: 56px;
+}
+
+.detalle-portada .portada-titulo {
+    font-size: 15px;
+}
+
+.detalle-info h2 {
+    margin: 4px 0;
+    font-size: 30px;
+}
+
+.detalle-info .autor {
+    margin: 0 0 var(--space-2);
+    font-size: 17px;
+    color: var(--color-text-soft);
+}
+
+.detalle-info h3 {
+    margin: var(--space-5) 0 var(--space-2);
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--color-border);
+    font-size: 16px;
+}
+
+.detalle-info p {
+    margin: 6px 0;
+}
+
+/* Valoración media en la ficha */
+.valoracion {
+    color: var(--color-text-soft);
+}
+
+.valoracion .estrellas {
+    font-size: 18px;
+}
+
+/* Datos del libro en dos columnas: nombre del dato y valor */
+.datos-libro {
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    gap: 6px var(--space-5);
+    margin: 0;
+}
+
+.datos-libro dt {
+    color: var(--color-text-soft);
+    font-size: 14px;
+}
+
+.datos-libro dd {
+    margin: 0;
+    font-weight: 500;
+}
+
+/* Los dos formatos, uno al lado del otro si hay lugar */
+.formatos-libro {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: var(--space-4);
+    margin-top: var(--space-5);
+}
+
+/* Un bloque por cada formato (físico y digital) */
+.formato-libro {
+    padding: var(--space-4);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    background-color: var(--color-light);
+}
+
+.formato-libro h3 {
+    margin: 0 0 var(--space-2);
+    padding: 0;
+    border: none;
+}
+
+.formato-libro .precio {
+    margin: 0 0 var(--space-2);
+    font-size: 26px;
+    font-weight: 700;
+    color: var(--color-primary);
+}
+
+.formato-libro p {
+    margin: var(--space-2) 0 0;
+}
+
+/* "También podría interesarte" y reseñas, debajo de la ficha */
+.relacionados,
+.resenas {
+    margin-top: var(--space-7);
+}
+
+.relacionados h2,
+.resenas h2 {
+    margin-bottom: var(--space-4);
+}
+
+.relacionados-lista {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--space-4);
+}
+
+/* Libro relacionado: portada chica y datos al lado */
+.libro-mini {
+    display: flex;
+    gap: var(--space-3);
+    padding: var(--space-3);
+    color: var(--color-text);
+    text-decoration: none;
+}
+
+.libro-mini .portada-marco {
+    flex: 0 0 62px;
+    width: 62px;
+}
+
+.libro-mini .portada-inicial {
+    font-size: 18px;
+}
+
+.libro-mini strong {
+    display: block;
+    font-size: 14px;
+    line-height: 1.3;
+}
+
+.libro-mini span {
+    font-size: 13px;
+    color: var(--color-text-soft);
 }
 
 /* Cada reseña publicada */
 .resena {
-    background-color: #fff;
-    padding: 15px 20px;
-    border-radius: 8px;
-    border-left: 4px solid #f1c40f;
-    margin-bottom: 15px;
+    margin-bottom: var(--space-3);
+    padding: var(--space-4) var(--space-5);
+}
+
+.resena p {
+    margin: var(--space-2) 0;
 }
 
 .resena-cabecera {
     display: flex;
     align-items: center;
-    gap: 12px;
     flex-wrap: wrap;
+    gap: 6px 12px;
 }
 
 .fecha {
-    color: #999;
+    color: var(--color-text-soft);
     font-size: 13px;
 }
 
-/* Botón rojo para eliminar reseñas */
-.boton-eliminar {
-    padding: 5px 12px;
-    background-color: #c0392b;
-    color: #fff;
-    border: none;
-    border-radius: 5px;
-    font-size: 13px;
-    cursor: pointer;
-}
+/* ------------------------------------------------------------
+   10. CAJA DEL MOSTRADOR
+   Pantalla de punto de venta: zona de escaneo destacada, ticket
+   y total bien visible.
+   ------------------------------------------------------------ */
 
-.boton-eliminar:hover {
-    background-color: #962d22;
-}
-
-/* Saludo "Hola, nombre" en el menú del catálogo */
-.usuario {
-    margin-left: 20px;
-    color: #f1c40f;
-}
-
-/* Formularios de login y registro: caja blanca centrada */
-.formulario {
-    background-color: #fff;
-    max-width: 400px;
-    margin: 40px auto;
-    padding: 30px;
-    border-radius: 8px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+/* Zona de escaneo del código de barras */
+.form-caja {
     display: flex;
-    flex-direction: column;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px 12px;
+    margin: 0 0 var(--space-4);
+    padding: var(--space-5);
 }
 
-.formulario h2 {
-    margin-top: 0;
-    text-align: center;
-}
-
-.formulario label {
-    margin-top: 12px;
-    font-weight: bold;
-}
-
-.formulario input {
-    padding: 10px;
-    margin-top: 5px;
-    border: 1px solid #ccc;
-    border-radius: 5px;
+.form-caja label {
+    margin: 0;
     font-size: 15px;
 }
 
-.formulario button {
-    margin-top: 20px;
-    padding: 12px;
-    background-color: #2c3e50;
+.form-caja input[type="text"] {
+    flex: 1;
+    min-width: 200px;
+    min-height: 50px;
+    border: 2px solid var(--color-dark);
+    font-size: 18px;
+}
+
+.form-caja .btn {
+    min-height: 50px;
+}
+
+/* Cuando el código no se encuentra, el campo se sacude apenas y
+   su borde se pone rojo */
+.form-caja input[type="text"].sacudir {
+    animation: sacudir 380ms var(--ease);
+    border-color: var(--color-error);
+}
+
+/* Botones debajo del ticket: vaciar, total y finalizar */
+.acciones-ticket {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--space-3);
+}
+
+/* Total de la venta, bien visible al lado del botón de finalizar */
+.total-caja {
+    margin: 0 0 0 auto;
+    text-align: right;
+    font-size: 14px;
+    color: var(--color-text-soft);
+}
+
+.total-caja strong {
+    display: block;
+    font-size: 30px;
+    line-height: 1.1;
+    font-variant-numeric: tabular-nums;
+    color: var(--color-dark);
+}
+
+/* ------------------------------------------------------------
+   11. TABLAS Y GESTIÓN
+   ------------------------------------------------------------ */
+
+/* Contenedor para tablas anchas: en pantallas chicas la tabla se
+   desplaza de lado dentro de este bloque, sin ensanchar la página.
+   "position: relative" hace que las etiquetas ocultas para lectores
+   de pantalla (.solo-lectores) queden dentro de este bloque y no
+   estiren la página hacia el costado en el celular. */
+.tabla-scroll {
+    position: relative;
+    overflow-x: auto;
+    margin-bottom: var(--space-5);
+}
+
+.tabla-stock {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 15px;
+}
+
+/* Encabezado oscuro */
+.tabla-stock th {
+    padding: 12px 14px;
+    background-color: var(--color-dark);
     color: #fff;
-    border: none;
-    border-radius: 5px;
-    font-size: 16px;
-    font-weight: bold;
-    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    text-align: left;
+    white-space: nowrap;
 }
 
-.formulario button:hover {
-    background-color: #f1c40f;
-    color: #2c3e50;
+.tabla-stock td {
+    padding: 11px 14px;
+    border-top: 1px solid var(--color-border);
+    vertical-align: middle;
+    transition: background-color var(--transition-fast);
 }
 
-.formulario p {
-    text-align: center;
+/* Fila resaltada al pasar el ratón */
+.tabla-stock tr:hover td {
+    background-color: var(--color-light);
 }
 
-.formulario a {
-    color: #2c3e50;
-    font-weight: bold;
+/* Miniatura de la portada dentro de una tabla */
+.tabla-stock .portada-marco {
+    width: 44px;
 }
 
-/* Mensajes: rojo para errores, verde para avisos de éxito */
-.error {
-    background-color: #fdecea;
-    color: #c0392b;
-    padding: 10px;
-    border-radius: 5px;
+.tabla-stock .portada-inicial {
+    font-size: 14px;
 }
 
-.exito {
-    background-color: #e8f8ee;
-    color: #27ae60;
-    padding: 10px;
-    border-radius: 5px;
+.tabla-stock .portada-vacia {
+    padding: 2px;
 }
 
-/* Pie de página */
-footer {
-    background-color: #2c3e50;
+.tabla-stock a:not([class]) {
+    font-weight: 600;
+    text-decoration: none;
+}
+
+/* Botones de cada fila, uno al lado del otro */
+.acciones-linea {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+/* Fila de un libro o usuario dado de baja: texto en gris */
+.tabla-stock .fila-inactiva td {
+    color: rgba(15, 23, 42, 0.45);
+}
+
+/* Fila final con el total */
+.tabla-stock .fila-total td {
+    padding: 14px;
+    background-color: var(--color-light);
+    border-top: 2px solid var(--color-dark);
+    font-size: 17px;
+    font-weight: 700;
+}
+
+/* Fila recién modificada o agregada: se ilumina y se apaga */
+.tabla-stock .fila-actualizada td {
+    animation: resaltar 2.2s var(--ease);
+}
+
+/* Bloque con el detalle de la venta elegida */
+.detalle-venta {
+    margin-top: var(--space-6);
+}
+
+.detalle-venta h3 {
+    margin: 0 0 var(--space-2);
+    padding-bottom: var(--space-2);
+    border-bottom: 1px solid var(--color-border);
+}
+
+.detalle-venta > p {
+    margin: var(--space-2) 0 var(--space-4);
+}
+
+/* ------------------------------------------------------------
+   12. INICIO DE SESIÓN Y REGISTRO
+   En escritorio: mitad visual y mitad formulario. En el móvil:
+   solo el formulario, con un fondo decorativo.
+   ------------------------------------------------------------ */
+main.acceso {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    max-width: none;
+    padding: 0;
+    /* Fondo claro detrás del formulario (el formulario sigue blanco) */
+    background-color: var(--color-fondo);
+}
+
+/* Mitad visual: fondo oscuro liso, con una composición de tres
+   libros arriba y el lema abajo. Sin figuras ni partículas. */
+.acceso-visual {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    min-height: 560px;
+    padding: var(--space-7);
+    background-color: var(--color-dark);
     color: #fff;
-    text-align: center;
-    padding: 10px;
+    overflow: hidden;
+}
+
+.acceso-lema,
+.acceso-sublema {
+    position: relative;
+    max-width: 380px;
+    margin: 0;
+}
+
+.acceso-lema {
+    margin-bottom: var(--space-2);
+    font-size: 36px;
+    font-weight: 700;
+    line-height: 1.15;
+    letter-spacing: -0.5px;
+}
+
+.acceso-sublema {
+    color: var(--color-on-dark);
+}
+
+/* Composición de tres libros: es lo único que se ve en la mitad
+   visual, sobre el fondo oscuro. Los tres están superpuestos como
+   una pila (el de atrás arriba a la izquierda, el de adelante
+   abajo a la derecha), cada uno con una rotación muy leve.
+   Quedan quietos: no flotan ni giran. Ocupa alrededor del 40 % del
+   ancho de la mitad (47 % del espacio que deja el relleno) y, con
+   "margin: auto", queda en la zona central/superior, por encima
+   del texto. */
+.acceso-libros {
+    position: relative;
+    width: 47%;
+    max-width: 400px;
+    aspect-ratio: 1 / 1.2;
+    margin: auto;
+}
+
+.acceso-libro {
+    position: absolute;
+    width: 60%;
+    transform: rotate(var(--giro));
+    transition: transform var(--transition-normal) var(--ease);
+}
+
+/* Sombra muy suave: alcanza para separar un libro del que tiene debajo */
+.acceso-libro .portada-marco {
+    border-radius: 3px 8px 8px 3px;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.22);
+}
+
+/* Lugar y rotación de cada libro */
+.acceso-libro:nth-child(1) {
+    --giro: -6deg;
+    top: 0;
+    left: 0;
+}
+
+.acceso-libro:nth-child(2) {
+    --giro: 2deg;
+    top: 12%;
+    left: 20%;
+}
+
+.acceso-libro:nth-child(3) {
+    --giro: 7deg;
+    top: 24%;
+    left: 40%;
+}
+
+/* Al cargar la página entran con una transición suave, uno
+   después del otro, y ya no se mueven más */
+.js .acceso-libro {
+    --desde-y: 14px;
+    animation: aparecer var(--transition-slow) var(--ease) backwards;
+}
+
+.js .acceso-libro:nth-child(2) {
+    animation-delay: 90ms;
+}
+
+.js .acceso-libro:nth-child(3) {
+    animation-delay: 180ms;
+}
+
+/* Al pasar el cursor, el libro sube apenas */
+.acceso-libro:hover {
+    transform: translateY(-4px) rotate(var(--giro));
+}
+
+/* Mitad del formulario */
+.acceso-panel {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--space-6) var(--space-5);
+}
+
+.acceso-panel .formulario {
+    width: 100%;
+    margin: 0;
+}
+
+/* Logo y nombre arriba del formulario */
+.acceso-marca {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin: 0 0 var(--space-4);
+    font-weight: 700;
+    color: var(--color-dark);
+}
+
+.acceso-marca svg {
+    color: var(--color-primary);
+}
+
+/* ------------------------------------------------------------
+   13. ANIMACIONES
+   Todas las animaciones del sitio están definidas aquí.
+   ------------------------------------------------------------ */
+
+/* --- Aparecer: de transparente a visible, llegando desde un
+   punto cercano. La distancia se elige con --desde-y (y --desde-x):
+   positivo sube, negativo baja. Es la misma animación para todo lo
+   que "entra" en la página. --- */
+@keyframes aparecer {
+    from {
+        opacity: 0;
+        transform: translate(var(--desde-x, 0px), var(--desde-y, 8px));
+    }
+}
+
+/* El contenido entra al cargar cada página */
+main {
+    --desde-y: 6px;
+    animation: aparecer 220ms var(--ease) both;
+}
+
+/* La cabecera y el menú del móvil bajan */
+.js header {
+    --desde-y: -8px;
+    animation: aparecer var(--transition-normal) var(--ease) both;
+}
+
+/* Los avisos de PHP bajan apenas */
+.js .exito,
+.js .error {
+    --desde-y: -6px;
+    animation: aparecer var(--transition-normal) var(--ease) both;
+}
+
+/* Los mensajes flotantes y el diálogo suben */
+.mensaje,
+.dialogo[open] {
+    --desde-y: 12px;
+    animation: aparecer var(--transition-normal) var(--ease) both;
+}
+
+/* La fila nueva del ticket entra desde la izquierda */
+.tabla-stock .fila-nueva {
+    --desde-x: -16px;
+    --desde-y: 0px;
+    animation: aparecer var(--transition-slow) var(--ease);
+}
+
+/* Aparición al entrar en pantalla: los elementos marcados con
+   data-reveal (y los hijos de los marcados con data-reveal-hijos)
+   aparecen una sola vez, subiendo 20 píxeles. main.js les agrega
+   la clase "revelado". Solo se ocultan si hay JavaScript. */
+.js [data-reveal]:not(.revelado),
+.js [data-reveal-hijos] > :not(.revelado) {
+    opacity: 0;
+}
+
+.revelado {
+    --desde-y: 20px;
+    animation: aparecer var(--transition-slow) var(--ease) backwards;
+    animation-delay: var(--retraso, 0ms);
+}
+
+/* La etiqueta de estado de la ficha late una vez al aparecer */
+.js .formato-libro .disponible,
+.js .formato-libro .agotado {
+    animation: latir 900ms 500ms var(--ease) both;
+}
+
+@keyframes latir {
+    0% {
+        transform: scale(0.8);
+        opacity: 0;
+    }
+    60% {
+        transform: scale(1.08);
+        opacity: 1;
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+
+/* Flotar: sube y baja unos pocos píxeles, muy lento, respetando
+   el giro propio de cada elemento (--giro). Lo usan los libros del
+   inicio. */
+@keyframes flotar {
+    0%,
+    100% {
+        transform: var(--giro) translateY(0);
+    }
+    50% {
+        transform: var(--giro) translateY(-10px);
+    }
+}
+
+/* Girar una vuelta completa: el círculo de "enviando" de los botones */
+@keyframes girar {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Brillo que pasa sobre una portada mientras carga */
+@keyframes brillo {
+    to {
+        transform: translateX(100%);
+    }
+}
+
+/* Tilde que se dibuja */
+@keyframes dibujar {
+    to {
+        stroke-dashoffset: 0;
+    }
+}
+
+/* Fila de tabla que se ilumina y se apaga */
+@keyframes resaltar {
+    0%,
+    35% {
+        background-color: var(--color-accent-soft);
+    }
+}
+
+/* Campo que se sacude cuando hay un error */
+@keyframes sacudir {
+    20% {
+        transform: translateX(-6px);
+    }
+    40% {
+        transform: translateX(5px);
+    }
+    60% {
+        transform: translateX(-4px);
+    }
+    80% {
+        transform: translateX(2px);
+    }
+}
+
+/* ------------------------------------------------------------
+   14. PANTALLAS CHICAS (RESPONSIVE)
+   El diseño base es para escritorio. Aquí se ajusta para tablet
+   y para móvil (hasta 320 px de ancho).
+   ------------------------------------------------------------ */
+
+/* Pantallas muy anchas: los destacados se separan un poco más */
+@media (min-width: 1400px) {
+    .js .carrusel-pista {
+        --paso: 300px;
+    }
+}
+
+/* Hasta 1399 px: los enlaces del menú van un poco más juntos, para
+   que los 11 del bibliotecario y el saludo entren en una sola fila
+   a 1280 px aunque el nombre sea largo. La línea del enlace activo
+   se ajusta al nuevo relleno. */
+@media (max-width: 1399px) {
+    nav a {
+        padding: 5px 9px;
+    }
+
+    nav a.activo::after {
+        left: 9px;
+        right: 9px;
+    }
+}
+
+/* Hasta 1199 px: el catálogo pasa a 3 columnas y el carrusel
+   muestra 3 destacados (los dos de los extremos se ocultan) */
+@media (max-width: 1199px) {
+    .catalogo {
+        grid-template-columns: repeat(3, 1fr);
+        gap: var(--space-5);
+    }
+
+    .js .carrusel-pista {
+        --paso: 290px;
+    }
+
+    .js .destacado[data-pos="-2"],
+    .js .destacado[data-pos="2"] {
+        opacity: 0;
+        pointer-events: none;
+    }
+}
+
+@media (max-width: 1100px) {
+    .relacionados-lista {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .hero h2 {
+        font-size: 38px;
+    }
+}
+
+/* Tablet */
+@media (max-width: 860px) {
+    .catalogo,
+    .bloques,
+    .pasos {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .pasos {
+        row-gap: var(--space-6);
+    }
+
+    /* Carrusel: los 3 destacados más juntos para que entren */
+    .js .carrusel-pista {
+        --paso: 224px;
+    }
+
+    .hero {
+        grid-template-columns: 1fr;
+        padding: var(--space-6) var(--space-5);
+    }
+
+    .hero-libros {
+        height: 280px;
+    }
+
+    .hero-libro {
+        width: 120px;
+    }
+
+    .detalle {
+        grid-template-columns: 200px 1fr;
+        gap: var(--space-5);
+        padding: var(--space-5);
+    }
+
+    /* Login y registro: solo el formulario, con fondo decorativo */
+    main.acceso {
+        grid-template-columns: 1fr;
+        background: var(--fondo-decorado);
+    }
+
+    .acceso-visual {
+        display: none;
+    }
+}
+
+/* Menú plegable: con JavaScript, en pantallas chicas el menú se
+   esconde detrás del botón de las tres rayas */
+@media (max-width: 760px) {
+    .js .menu-boton:not([hidden]) {
+        display: inline-flex;
+    }
+
+    /* Con el menú plegado la barra tiene el botón a la izquierda y
+       el saludo a la derecha. Al abrirlo, los enlaces bajan a una
+       fila propia que ocupa todo el ancho. */
+    .js .menu-plegable .cabecera {
+        flex-wrap: wrap;
+        padding: 6px var(--space-3);
+    }
+
+    .js .menu-plegable nav {
+        display: none;
+        order: 3;
+        flex: 0 0 100%;
+        flex-direction: column;
+        flex-wrap: nowrap;
+        gap: 2px;
+        padding: 0 0 6px;
+    }
+
+    /* Abierto: si los enlaces no entran en la pantalla (la cabecera
+       queda fija arriba), el menú se desplaza por dentro */
+    .js .menu-plegable.abierto nav {
+        display: flex;
+        max-height: calc(100vh - 56px);
+        overflow-y: auto;
+        animation: aparecer var(--transition-normal) var(--ease);
+    }
+
+    .js .menu-plegable nav a {
+        padding: 12px;
+        font-size: 15px;
+    }
+
+    .js .menu-plegable nav a.activo {
+        background-color: rgba(255, 255, 255, 0.1);
+    }
+
+    /* La línea del enlace activo pasa a ser una barra a la izquierda */
+    .js .menu-plegable nav a.activo::after {
+        display: block;
+        left: 0;
+        right: auto;
+        top: 10px;
+        bottom: 10px;
+        width: 3px;
+        height: auto;
+    }
+
+    .js .menu-plegable nav a.salir {
+        margin-left: 0;
+        margin-top: 6px;
+        border-top: 1px solid rgba(255, 255, 255, 0.14);
+        border-radius: 0;
+    }
+
+    .js .menu-plegable .nav-indicador {
+        display: none;
+    }
+}
+
+/* Móvil: todo en una sola columna */
+@media (max-width: 560px) {
+    .cabecera {
+        padding: 6px var(--space-2);
+    }
+
+    /* Si el nombre es largo, el saludo se corta con puntos suspensivos */
+    .usuario {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    nav a {
+        padding: 5px 9px;
+        font-size: 13px;
+    }
+
+    main {
+        padding: var(--space-5) var(--space-4) var(--space-6);
+    }
+
+    /* Catálogo: en el móvil el título queda a 16 px de la barra */
+    main.ancho-catalogo {
+        padding-top: var(--space-4);
+    }
+
+    main h2 {
+        font-size: 23px;
+    }
+
+    .catalogo,
+    .bloques,
+    .pasos,
+    .relacionados-lista {
+        grid-template-columns: 1fr;
+    }
+
+    /* En el móvil la tarjeta se pone de lado: portada chica a la
+       izquierda y datos a la derecha, para que no sea tan alta */
+    .libro {
+        flex-direction: row;
+    }
+
+    .libro > .portada-marco {
+        flex: 0 0 104px;
+        width: 104px;
+        aspect-ratio: auto;
+    }
+
+    .libro .portada-inicial {
+        font-size: 24px;
+    }
+
+    .hero,
+    .form-libro,
+    .form-caja,
+    .detalle {
+        padding: var(--space-4);
+    }
+
+    .hero h2 {
+        font-size: 30px;
+    }
+
+    .hero-libros {
+        height: 230px;
+    }
+
+    .hero-libro {
+        width: 96px;
+    }
+
+    .seccion + .seccion {
+        margin-top: var(--space-6);
+    }
+
+    /* Inicio: las dos zonas con menos margen a los lados */
+    .inicio-arriba,
+    .zona-interior {
+        padding-left: var(--space-4);
+        padding-right: var(--space-4);
+    }
+
+    .inicio-arriba {
+        padding-top: var(--space-4);
+        padding-bottom: var(--space-4);
+    }
+
+    .zona-oscura {
+        padding: var(--space-4) 0 var(--space-6);
+    }
+
+    /* Carrusel: en el móvil se ve solo el libro activo */
+    .js .destacado[data-pos="-1"],
+    .js .destacado[data-pos="1"] {
+        opacity: 0;
+        pointer-events: none;
+    }
+
+    .detalle,
+    .form-libro {
+        grid-template-columns: 1fr;
+    }
+
+    /* Ancho fijo: centrada con "margin: auto" dentro de una cuadrícula,
+       sin un ancho propio la portada quedaría de 0 píxeles */
+    .detalle-portada {
+        width: 170px;
+        max-width: 100%;
+        margin: 0 auto;
+    }
+
+    .detalle-info h2 {
+        font-size: 24px;
+    }
+
+    .destacados {
+        padding: var(--space-4) var(--space-3);
+    }
+
+    .formulario {
+        padding: var(--space-5) var(--space-4);
+    }
+
+    .acceso-panel {
+        padding: var(--space-5) var(--space-3);
+    }
+
+    /* Las tablas no se aprietan: mantienen un ancho cómodo y se
+       desplazan de lado dentro de su bloque "tabla-scroll" */
+    .tabla-stock {
+        min-width: 560px;
+    }
+
+    /* Caja: el total y el botón de finalizar ocupan todo el ancho */
+    .total-caja {
+        margin-left: 0;
+        width: 100%;
+        text-align: left;
+    }
+
+    .acciones-ticket .btn-success {
+        width: 100%;
+    }
+
+    .mensajes {
+        right: var(--space-3);
+        bottom: var(--space-3);
+    }
+}
+
+/* ------------------------------------------------------------
+   15. MENOS MOVIMIENTO
+   Si la persona configuró su equipo para reducir las animaciones,
+   se quitan los movimientos (flotar, girar, deslizar, inclinar):
+   todo aparece directamente en su lugar. main.js además detiene
+   el cambio automático del carrusel.
+   Aquí "!important" es necesario: tiene que ganarle a todas las
+   animaciones del sitio, sin importar dónde estén definidas.
+   ------------------------------------------------------------ */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 1ms !important;
+        animation-delay: 0ms !important;
+        animation-iteration-count: 1 !important;
+        scroll-behavior: auto !important;
+    }
+
+    /* Los libros del inicio, que flotaban, quedan quietos en su posición */
+    .hero-libro {
+        animation: none;
+        transform: var(--giro);
+    }
+
+    /* Los libros del login no se levantan al pasar el cursor */
+    .acceso-libro:hover {
+        transform: rotate(var(--giro));
+    }
+
+    /* Sin inclinación ni tarjetas que se levantan */
+    .libro,
+    .detalle-portada .portada-marco,
+    .libro:hover .portada-marco img,
+    .bloque:hover,
+    .paso:hover,
+    .libro-mini:hover {
+        transform: none;
+    }
+
+    .js .destacado,
+    .nav-indicador,
+    .portada-marco img {
+        transition-duration: 1ms;
+    }
 }

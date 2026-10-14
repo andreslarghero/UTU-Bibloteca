@@ -6,26 +6,14 @@
 // Solo pueden entrar los usuarios con admin = 1.
 // ============================================================
 
-// Inicia (o recupera) la sesión del usuario.
-session_start();
-
 // ------------------------------------------------------------
 // PROTECCIÓN DE LA PÁGINA
-// Si no hay sesión, manda al login. Si el usuario no es
-// administrador, lo devuelve al catálogo.
+// verificar_bibliotecario.php inicia la sesión, conecta con la
+// base de datos y comprueba en la base, en cada petición, que el
+// usuario sigue activo y sigue siendo bibliotecario. Si no, lo
+// saca de aquí antes de ejecutar nada de esta página.
 // ------------------------------------------------------------
-if (!isset($_SESSION["id"])) {
-    header("Location: login.php");
-    exit;
-}
-
-if (empty($_SESSION["admin"])) {
-    header("Location: libros.php");
-    exit;
-}
-
-// Conecta con la base de datos.
-include "conexion.php";
+include "verificar_bibliotecario.php";
 
 // Aquí se guarda el mensaje que confirma el borrado.
 $mensaje = "";
@@ -37,7 +25,7 @@ $mensaje = "";
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $resena_id = (int) $_POST["resena_id"];
 
-    $borrar = mysqli_prepare($conexion, "DELETE FROM resenas WHERE id = ?");
+    $borrar = mysqli_prepare($conexion, "DELETE FROM resenias WHERE id = ?");
     mysqli_stmt_bind_param($borrar, "i", $resena_id);
     mysqli_stmt_execute($borrar);
 
@@ -47,10 +35,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 // Pide todas las reseñas con el título del libro y el nombre del usuario,
 // de la más nueva a la más antigua.
 $resultado = mysqli_query($conexion,
-    "SELECT resenas.*, libros.titulo, usuarios.nombre FROM resenas
-     JOIN libros ON libros.id = resenas.libro_id
-     JOIN usuarios ON usuarios.id = resenas.usuario_id
-     ORDER BY resenas.fecha DESC");
+    "SELECT resenias.*, libros.titulo, usuarios.nombre FROM resenias
+     JOIN libros ON libros.id = resenias.libro_id
+     JOIN usuarios ON usuarios.id = resenias.usuario_id
+     ORDER BY resenias.fecha DESC");
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -58,24 +46,14 @@ $resultado = mysqli_query($conexion,
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gestión de reseñas - Biblioteca Digital</title>
-    <link rel="stylesheet" href="../css/estilos.css?v=5">
+    <link rel="stylesheet" href="../css/estilos.css?v=28">
 </head>
 <body>
-    <!-- Encabezado: menú, saludo con el nombre del usuario y botón para salir -->
-    <header>
-        <h1>Biblioteca Digital</h1>
-        <nav>
-            <a href="../index.html">Inicio</a>
-            <a href="libros.php">Catálogo</a>
-            <a href="stock.php">Gestionar stock</a>
-            <a href="resenas.php">Gestionar reseñas</a>
-            <span class="usuario">Hola, <?php echo htmlspecialchars($_SESSION["nombre"]); ?></span>
-            <a href="logout.php">Cerrar sesión</a>
-        </nav>
-    </header>
+<?php include "navbar.php"; ?>
 
     <main>
         <h2>Gestión de reseñas</h2>
+        <p class="descripcion-pagina">Todas las reseñas publicadas. Se puede eliminar cualquiera.</p>
 
         <!-- Aviso verde después de eliminar una reseña -->
         <?php if ($mensaje) { ?>
@@ -87,6 +65,8 @@ $resultado = mysqli_query($conexion,
             <p class="sin-resultados">Todavía no hay reseñas.</p>
         <?php } else { ?>
         <!-- Tabla con todas las reseñas -->
+        <!-- "tabla-scroll": en un móvil la tabla se desplaza de lado dentro de este bloque, sin ensanchar la página -->
+        <div class="tabla-scroll">
         <table class="tabla-stock">
             <tr>
                 <th>Libro</th>
@@ -106,14 +86,15 @@ $resultado = mysqli_query($conexion,
                 <td><?php echo date("d/m/Y", strtotime($r["fecha"])); ?></td>
                 <td>
                     <!-- Botón para eliminar la reseña (pide confirmación) -->
-                    <form method="POST" onsubmit="return confirm('¿Eliminar esta reseña?');">
+                    <form name="form_eliminar_resenia_<?php echo $r["id"]; ?>" method="POST" action="resenas.php" data-confirmar="¿Eliminar esta reseña? No se puede deshacer.">
                         <input type="hidden" name="resena_id" value="<?php echo $r["id"]; ?>">
-                        <button class="boton-eliminar" type="submit">Eliminar</button>
+                        <button class="btn btn-danger btn-sm" type="submit">Eliminar</button>
                     </form>
                 </td>
             </tr>
             <?php } ?>
         </table>
+        </div>
         <?php } ?>
     </main>
 

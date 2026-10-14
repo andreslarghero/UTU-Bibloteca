@@ -1,91 +1,337 @@
 -- ============================================================
 -- BASE DE DATOS DE LA BIBLIOTECA DIGITAL
--- Este archivo se importa en phpMyAdmin para crear todo lo
--- que necesita la web: la base de datos y sus tablas.
+-- Este archivo se importa en phpMyAdmin para instalar la base
+-- desde cero: crea la base de datos, sus tablas y los datos de
+-- prueba que necesita la web.
+--
+-- Cumple la función de "schema.sql": contiene la creación del
+-- esquema (6 tablas con sus claves y restricciones) y los datos
+-- iniciales.
+--
+-- Es una INSTALACIÓN LIMPIA DE DEMOSTRACIÓN. Trae el catálogo
+-- completo (30 libros: 20 físicos y 10 digitales, en 9 categorías)
+-- y datos de ejemplo: 2 usuarios ficticios, 2 ventas y 2 reseñas.
+-- NO es una copia de la base de trabajo del equipo: no contiene
+-- sus cuentas, sus ventas ni sus reseñas.
+--
+-- OJO: si la base ya existe, al importar este archivo se borran
+-- y se vuelven a crear TODAS las tablas. Se pierden los usuarios
+-- registrados, las ventas, las reseñas y los cambios de stock, y
+-- la base vuelve a quedar con los datos de prueba de abajo.
+--
+-- Tablas (en el orden en que se crean):
+--   usuarios, categorias, libros, ventas, venta_lineas, resenias
 -- ============================================================
 
 -- Crea la base de datos "biblioteca" (si no existe) y la selecciona
 -- para que las siguientes instrucciones se ejecuten dentro de ella.
-CREATE DATABASE IF NOT EXISTS biblioteca;
+-- utf8mb4 es el juego de caracteres que permite guardar acentos y eñes.
+CREATE DATABASE IF NOT EXISTS biblioteca CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
 USE biblioteca;
 
 -- ------------------------------------------------------------
--- TABLA USUARIOS
--- Guarda las cuentas que se crean desde la página de registro.
--- "IF NOT EXISTS" hace que, al volver a importar el archivo,
--- no se borren los usuarios ya registrados.
+-- BORRADO DE TABLAS
+-- Se borran en orden: primero las tablas que dependen de otras
+-- (por sus claves foráneas) y al final las tablas "padre".
+--   resenias      depende de libros y de usuarios
+--   venta_lineas  depende de ventas y de libros
+--   ventas        depende de usuarios
+--   libros        depende de categorias
 -- ------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS usuarios (
+DROP TABLE IF EXISTS resenias;
+DROP TABLE IF EXISTS venta_lineas;
+DROP TABLE IF EXISTS ventas;
+DROP TABLE IF EXISTS libros;
+DROP TABLE IF EXISTS categorias;
+DROP TABLE IF EXISTS usuarios;
+
+-- ------------------------------------------------------------
+-- TABLA USUARIOS
+-- Guarda las cuentas que se crean desde la página de registro
+-- y desde la gestión de usuarios.
+-- Los usuarios no se borran: se dan de baja con activo = 0, para
+-- conservar sus ventas y sus reseñas. Un usuario dado de baja no
+-- puede iniciar sesión.
+-- ------------------------------------------------------------
+CREATE TABLE usuarios (
     id INT AUTO_INCREMENT PRIMARY KEY,     -- Número único de cada usuario (se asigna solo)
     nombre VARCHAR(100) NOT NULL,          -- Nombre de la persona
-    correo VARCHAR(150) NOT NULL UNIQUE,   -- Correo (Gmail); UNIQUE impide repetirlo
+    correo VARCHAR(150) NOT NULL UNIQUE,   -- Correo electrónico; UNIQUE impide repetirlo
     clave VARCHAR(255) NOT NULL,           -- Contraseña cifrada (nunca en texto normal)
-    admin TINYINT(1) NOT NULL DEFAULT 0    -- 1 = administrador (puede gestionar el stock), 0 = usuario normal
+    rol VARCHAR(20) NOT NULL DEFAULT 'cliente',   -- Tipo de usuario: 'cliente' o 'bibliotecario'
+    activo TINYINT(1) NOT NULL DEFAULT 1,  -- Baja lógica: 1 = puede iniciar sesión, 0 = dado de baja
+    CONSTRAINT chk_usuarios_rol CHECK (rol IN ('cliente', 'bibliotecario')),   -- Solo se permiten esos dos valores
+    CONSTRAINT chk_usuarios_activo CHECK (activo IN (0, 1))                    -- Solo se permite 0 o 1
 );
 
--- Para convertir una cuenta en administrador, ejecuta esto en phpMyAdmin
--- cambiando el correo por el de la cuenta:
--- UPDATE usuarios SET admin = 1 WHERE correo = 'tucorreo@gmail.com';
+-- ------------------------------------------------------------
+-- USUARIOS DE DEMOSTRACIÓN
+-- Un usuario de cada rol, para poder entrar a la web recién instalada.
+-- Son cuentas ficticias, creadas solo para mostrar el proyecto: no
+-- pertenecen a ninguna persona real (los correos usan example.com,
+-- un dominio reservado para ejemplos).
+-- Las contraseñas se guardan cifradas (las generó password_hash de PHP)
+-- y no se escriben en este archivo.
+--
+--   Rol            Correo
+--   bibliotecario  bibliotecario@example.com
+--   cliente        cliente@example.com
+--
+-- Cámbialas o dalas de baja si la web se usa de verdad.
+-- ------------------------------------------------------------
+-- Los dos quedan activos (el último valor, 1, es "activo").
+INSERT INTO usuarios (nombre, correo, clave, rol, activo) VALUES
+('Bibliotecario de prueba', 'bibliotecario@example.com', '$2y$10$.Qz7KS59CAsFQ0xLM8wsweUM3AgdrR79iBETC3Qe925.Ij9MI3eB2', 'bibliotecario', 1),   -- id 1
+('Cliente de prueba', 'cliente@example.com', '$2y$10$Ka52N4wv./iZEY/sSi87A.k1Qns2oVBDXP22Y71QqIU3BsUaymm8i', 'cliente', 1);                 -- id 2
+
+-- Las cuentas que se crean desde la página de registro quedan como 'cliente'.
+-- Un bibliotecario puede cambiar el rol de cualquier cuenta desde la web,
+-- en "Gestionar usuarios".
 
 -- ------------------------------------------------------------
--- TABLA RESEÑAS
--- Guarda las valoraciones (1 a 5 estrellas) y comentarios que
--- los usuarios dejan en cada libro. "IF NOT EXISTS" hace que,
--- al volver a importar el archivo, no se borren las reseñas.
+-- TABLA CATEGORIAS
+-- Lista de categorías (géneros) a las que puede pertenecer un libro.
 -- ------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS resenas (
+CREATE TABLE categorias (
+    id INT AUTO_INCREMENT PRIMARY KEY,     -- Número único de cada categoría (se asigna solo)
+    nombre VARCHAR(50) NOT NULL UNIQUE     -- Nombre de la categoría; UNIQUE impide repetirlo
+);
+
+-- Las categorías quedan con los id 1 a 9, en este orden.
+INSERT INTO categorias (nombre) VALUES
+('Ciencia ficción'),   -- 1
+('Distopía'),          -- 2
+('Fábula'),            -- 3
+('Fantasía'),          -- 4
+('Ficción'),           -- 5
+('Novela'),            -- 6
+('Novela clásica'),    -- 7
+('Realismo mágico'),   -- 8
+('Romance');           -- 9
+
+-- ------------------------------------------------------------
+-- TABLA LIBROS
+-- ------------------------------------------------------------
+CREATE TABLE libros (
+    id INT AUTO_INCREMENT PRIMARY KEY,     -- Número único de cada libro (se asigna solo)
+    titulo VARCHAR(150) NOT NULL,          -- Título del libro
+    autor VARCHAR(100) NOT NULL,           -- Autor del libro
+    anio INT,                              -- Año de publicación
+    portada VARCHAR(255),                  -- Portada: ruta del archivo en el proyecto (img/portadas/...)
+    categoria_id INT NOT NULL,             -- Categoría del libro (id de la tabla categorias)
+    stock INT NOT NULL DEFAULT 0,          -- Copias del formato físico (0 = agotado)
+    isbn VARCHAR(20) UNIQUE,               -- ISBN del libro; puede quedar vacío (NULL), pero no repetirse
+    precio DECIMAL(8,2) NOT NULL DEFAULT 0,       -- Precio del formato físico
+    codigo_barras VARCHAR(20) NULL UNIQUE,        -- Código de barras del libro físico (el ISBN, si tiene); no se repite. Vacío (NULL) si el libro no tiene formato físico
+    descripcion TEXT,                      -- Resumen que se muestra en la página de detalle
+    activo TINYINT(1) NOT NULL DEFAULT 1,  -- Baja lógica: 1 = visible en el catálogo, 0 = dado de baja
+    formato_fisico TINYINT(1) NOT NULL DEFAULT 1,     -- 1 = el libro se vende en papel (usa precio, stock y codigo_barras)
+    formato_digital TINYINT(1) NOT NULL DEFAULT 0,    -- 1 = el libro se vende en digital (usa precio_digital y archivo_digital)
+    precio_digital DECIMAL(8,2) NULL,                 -- Precio del formato digital (NULL si no tiene)
+    archivo_digital VARCHAR(255) NULL,                -- Nombre del archivo PDF o EPUB guardado en la carpeta "digitales" (NULL si no tiene)
+    CONSTRAINT chk_libros_stock CHECK (stock >= 0),    -- El stock nunca puede ser negativo
+    CONSTRAINT fk_libros_categoria FOREIGN KEY (categoria_id) REFERENCES categorias(id),   -- La categoría tiene que existir
+    CONSTRAINT chk_libros_formato_fisico CHECK (formato_fisico IN (0, 1)),      -- Solo se permite 0 o 1
+    CONSTRAINT chk_libros_formato_digital CHECK (formato_digital IN (0, 1)),    -- Solo se permite 0 o 1
+    CONSTRAINT chk_libros_algun_formato CHECK (formato_fisico = 1 OR formato_digital = 1),   -- Todo libro tiene al menos un formato
+    CONSTRAINT chk_libros_fisico CHECK (formato_fisico = 0 OR codigo_barras IS NOT NULL),   -- Si es físico, tiene que tener código de barras
+    CONSTRAINT chk_libros_digital CHECK (formato_digital = 0 OR (precio_digital IS NOT NULL AND archivo_digital IS NOT NULL)),   -- Si es digital, tiene que tener precio y archivo
+    CONSTRAINT chk_libros_precio_digital CHECK (precio_digital IS NULL OR precio_digital >= 0)   -- El precio digital no puede ser negativo
+);
+
+-- ------------------------------------------------------------
+-- LIBROS DEL CATÁLOGO
+-- El catálogo de demostración tiene 30 libros: 20 físicos y 10
+-- digitales. Se cargan en tres bloques:
+--   id  1 a 10  libros físicos
+--   id 11       libro digital de prueba
+--   id 12 a 21  libros físicos
+--   id 22 a 30  libros digitales
+--
+-- PRIMER BLOQUE (id 1 a 10)
+-- Las portadas son archivos del proyecto, en la carpeta img/portadas.
+-- Después de la portada van: id de la categoría, stock, ISBN,
+-- precio y código de barras (el mismo ISBN, que es el código
+-- impreso en el libro físico).
+-- Quedan solo en formato físico (los valores por defecto:
+-- formato_fisico = 1 y formato_digital = 0).
+-- ------------------------------------------------------------
+INSERT INTO libros (titulo, autor, anio, portada, categoria_id, stock, isbn, precio, codigo_barras, descripcion) VALUES
+('Cien años de soledad', 'Gabriel García Márquez', 1967, 'img/portadas/cien-anos-de-soledad.webp', 8, 5, '9780307474728', 650.00, '9780307474728',
+ 'La historia de siete generaciones de la familia Buendía en el pueblo ficticio de Macondo, desde su fundación hasta su desaparición. Una de las obras más importantes de la literatura latinoamericana.'),
+('Don Quijote de la Mancha', 'Miguel de Cervantes', 1605, 'img/portadas/don-quijote-de-la-mancha.webp', 7, 3, '9780060934347', 890.00, '9780060934347',
+ 'Un hidalgo que ha leído demasiados libros de caballerías decide convertirse en caballero andante y recorre España junto a su escudero Sancho Panza. Considerada la primera novela moderna.'),
+('1984', 'George Orwell', 1949, 'img/portadas/1984.webp', 2, 4, '9780451524935', 590.00, '9780451524935',
+ 'En un estado totalitario vigilado por el Gran Hermano, Winston Smith trabaja reescribiendo la historia hasta que empieza a cuestionar el sistema. Una advertencia sobre el control y la manipulación.'),
+('El principito', 'Antoine de Saint-Exupéry', 1943, 'img/portadas/el-principito.webp', 3, 6, '9780156012195', 390.00, '9780156012195',
+ 'Un aviador perdido en el desierto conoce a un pequeño príncipe llegado de otro planeta. A través de sus viajes, el libro reflexiona sobre la amistad, el amor y la forma de ver el mundo de los adultos.'),
+('Harry Potter y la piedra filosofal', 'J. K. Rowling', 1997, 'img/portadas/harry-potter-y-la-piedra-filosofal.webp', 4, 0, '9780590353427', 750.00, '9780590353427',
+ 'Harry descubre en su undécimo cumpleaños que es un mago y entra en el colegio Hogwarts, donde hace amigos, aprende magia y se enfrenta al misterio de la piedra filosofal.'),
+('El hobbit', 'J. R. R. Tolkien', 1937, 'img/portadas/el-hobbit.webp', 4, 2, '9780547928227', 690.00, '9780547928227',
+ 'Bilbo Bolsón, un hobbit tranquilo, se une a un mago y a trece enanos en un viaje para recuperar un tesoro custodiado por el dragón Smaug.'),
+('Orgullo y prejuicio', 'Jane Austen', 1813, 'img/portadas/orgullo-y-prejuicio.webp', 9, 3, '9780141439518', 490.00, '9780141439518',
+ 'Elizabeth Bennet y el señor Darcy superan sus primeras impresiones y sus diferencias sociales en la Inglaterra rural del siglo XIX.'),
+('El alquimista', 'Paulo Coelho', 1988, 'img/portadas/el-alquimista.webp', 5, 1, '9780062315007', 550.00, '9780062315007',
+ 'Santiago, un joven pastor andaluz, viaja hasta Egipto en busca de un tesoro que vio en sueños y aprende a seguir su propia leyenda personal.'),
+('Fahrenheit 451', 'Ray Bradbury', 1953, 'img/portadas/fahrenheit-451.webp', 1, 0, '9781451673319', 620.00, '9781451673319',
+ 'En una sociedad donde los libros están prohibidos, el bombero Guy Montag se encarga de quemarlos, hasta que empieza a preguntarse qué contienen.'),
+('Matar a un ruiseñor', 'Harper Lee', 1960, 'img/portadas/matar-a-un-ruisenor.webp', 6, 4, '9780061120084', 580.00, '9780061120084',
+ 'Narrada por la pequeña Scout Finch, cuenta cómo su padre, el abogado Atticus Finch, defiende a un hombre negro acusado injustamente en el sur de Estados Unidos.');
+
+-- ------------------------------------------------------------
+-- LIBROS DIGITALES Y SUS ARCHIVOS
+-- Un libro digital no tiene código de barras ni stock, y su precio
+-- físico queda en 0. Tiene precio_digital y archivo_digital.
+--
+-- archivo_digital es el NOMBRE de un archivo PDF que tiene que
+-- estar en la carpeta "digitales" del proyecto. Los 10 archivos
+-- vienen con el proyecto: son PDF de demostración de una página,
+-- creados para este trabajo. NO contienen las obras originales.
+-- Si falta el archivo, el libro se ve en el catálogo pero no se
+-- puede descargar.
+--
+-- SEGUNDO BLOQUE (id 11): libro digital de prueba.
+-- ------------------------------------------------------------
+INSERT INTO libros (titulo, autor, anio, portada, categoria_id, stock, isbn, precio, codigo_barras, descripcion, activo, formato_fisico, formato_digital, precio_digital, archivo_digital) VALUES
+('Libro Digital de Prueba', 'Proyecto Biblioteca Digital', NULL, NULL, 5, 0, NULL, 0, NULL,
+ 'Libro de muestra creado para el proyecto. Sirve para demostrar la compra y la descarga de libros digitales. No es un libro real.', 1, 0, 1, 300.00, 'libro_c5c0d7a1bcc430e9a4408df25da84966.pdf');
+
+-- ------------------------------------------------------------
+-- TERCER BLOQUE (id 12 a 21): 10 libros físicos más.
+-- Igual que los primeros: el código de barras es el ISBN. Hay
+-- stocks variados y uno agotado (Drácula, stock 0).
+-- ------------------------------------------------------------
+INSERT INTO libros (titulo, autor, anio, portada, categoria_id, stock, isbn, precio, codigo_barras, descripcion, activo, formato_fisico, formato_digital, precio_digital, archivo_digital) VALUES
+('Crónica de una muerte anunciada', 'Gabriel García Márquez', 1981, 'img/portadas/cronica-de-una-muerte-anunciada.webp', 6, 5, '9781400034956', 480.00, '9781400034956',
+ 'En un pueblo del Caribe todos saben que van a matar a Santiago Nasar, pero nadie lo impide. La novela reconstruye, como una investigación, las horas previas al crimen.', 1, 1, 0, NULL, NULL),
+('Rayuela', 'Julio Cortázar', 1963, 'img/portadas/rayuela.webp', 6, 3, '9788437604572', 720.00, '9788437604572',
+ 'La historia de Horacio Oliveira entre París y Buenos Aires, contada en capítulos que se pueden leer en más de un orden. Una de las novelas más originales de la literatura en español.', 1, 1, 0, NULL, NULL),
+('La metamorfosis', 'Franz Kafka', 1915, 'img/portadas/la-metamorfosis.webp', 5, 8, '9780553213690', 350.00, '9780553213690',
+ 'Gregorio Samsa despierta una mañana convertido en un enorme insecto. Su familia y él mismo deben aprender a convivir con esa transformación.', 1, 1, 0, NULL, NULL),
+('El retrato de Dorian Gray', 'Oscar Wilde', 1890, 'img/portadas/el-retrato-de-dorian-gray.webp', 7, 4, '9780141439570', 520.00, '9780141439570',
+ 'Un joven desea conservar para siempre su belleza y es su retrato el que envejece y refleja sus actos. Una reflexión sobre la vanidad y la conciencia.', 1, 1, 0, NULL, NULL),
+('Drácula', 'Bram Stoker', 1897, 'img/portadas/dracula.webp', 7, 0, '9780141439846', 560.00, '9780141439846',
+ 'A través de diarios y cartas se cuenta la llegada del conde Drácula a Inglaterra y la lucha de un grupo de personas por detenerlo. El clásico de las novelas de vampiros.', 1, 1, 0, NULL, NULL),
+('Frankenstein', 'Mary Shelley', 1818, 'img/portadas/frankenstein.webp', 1, 6, '9780141439471', 540.00, '9780141439471',
+ 'El científico Víctor Frankenstein da vida a una criatura y luego la abandona. Considerada una de las primeras novelas de ciencia ficción.', 1, 1, 0, NULL, NULL),
+('Los juegos del hambre', 'Suzanne Collins', 2008, 'img/portadas/los-juegos-del-hambre.webp', 2, 10, '9780439023528', 690.00, '9780439023528',
+ 'En un país dividido en distritos, Katniss Everdeen ocupa el lugar de su hermana en una competencia televisada en la que solo puede quedar un sobreviviente.', 1, 1, 0, NULL, NULL),
+('El nombre del viento', 'Patrick Rothfuss', 2007, 'img/portadas/el-nombre-del-viento.webp', 4, 2, '9780756404741', 850.00, '9780756404741',
+ 'Kvothe, músico, mago y aventurero, cuenta su propia historia: su infancia entre artistas ambulantes, sus años en la Universidad y el origen de su leyenda.', 1, 1, 0, NULL, NULL),
+('La sombra del viento', 'Carlos Ruiz Zafón', 2001, 'img/portadas/la-sombra-del-viento.webp', 6, 7, '9780143034902', 780.00, '9780143034902',
+ 'En la Barcelona de posguerra, el joven Daniel encuentra un libro en el Cementerio de los Libros Olvidados y descubre que alguien está destruyendo todas las obras de su autor.', 1, 1, 0, NULL, NULL),
+('Rebelión en la granja', 'George Orwell', 1945, 'img/portadas/rebelion-en-la-granja.webp', 3, 1, '9780451526342', 420.00, '9780451526342',
+ 'Los animales de una granja expulsan a los humanos para gobernarse solos, pero poco a poco los cerdos se quedan con el poder. Una fábula sobre la corrupción de los ideales.', 1, 1, 0, NULL, NULL);
+
+-- ------------------------------------------------------------
+-- CUARTO BLOQUE (id 22 a 30): 9 libros digitales.
+-- Son obras clásicas de dominio público, usadas solo como datos
+-- del catálogo. Sus archivos son los PDF de demostración.
+-- ------------------------------------------------------------
+INSERT INTO libros (titulo, autor, anio, portada, categoria_id, stock, isbn, precio, codigo_barras, descripcion, activo, formato_fisico, formato_digital, precio_digital, archivo_digital) VALUES
+('La Odisea', 'Homero', NULL, NULL, 7, 0, NULL, 0, NULL,
+ 'El largo viaje de regreso de Odiseo a Ítaca después de la guerra de Troya. Edición digital de demostración.', 1, 0, 1, 180.00, 'libro_e7b6252be74fa26954bb2594f3902a93.pdf'),
+('Lazarillo de Tormes', 'Anónimo', 1554, NULL, 7, 0, NULL, 0, NULL,
+ 'Lázaro cuenta, con humor e ironía, su vida al servicio de distintos amos. La primera novela picaresca. Edición digital de demostración.', 1, 0, 1, 150.00, 'libro_48d13210ec36c63e16e157b3740775fd.pdf'),
+('Martín Fierro', 'José Hernández', 1872, NULL, 5, 0, NULL, 0, NULL,
+ 'Poema narrativo sobre la vida del gaucho Martín Fierro, obligado a dejar su hogar. Obra fundamental de la literatura rioplatense. Edición digital de demostración.', 1, 0, 1, 160.00, 'libro_9299340935913ba14e628433fa68b438.pdf'),
+('La vuelta al mundo en ochenta días', 'Julio Verne', 1872, NULL, 6, 0, NULL, 0, NULL,
+ 'Phileas Fogg apuesta que puede dar la vuelta al mundo en ochenta días y parte de Londres junto a su ayudante. Edición digital de demostración.', 1, 0, 1, 220.00, 'libro_97c776407634e8f306f96673a25f60b1.pdf'),
+('Viaje al centro de la Tierra', 'Julio Verne', 1864, NULL, 1, 0, NULL, 0, NULL,
+ 'Un profesor, su sobrino y un guía descienden por un volcán de Islandia en busca del centro de la Tierra. Edición digital de demostración.', 1, 0, 1, 220.00, 'libro_62ebc9b8f65f694c79cbf107c5a6a18b.pdf'),
+('La isla del tesoro', 'Robert Louis Stevenson', 1883, NULL, 6, 0, NULL, 0, NULL,
+ 'El joven Jim Hawkins encuentra el mapa de un tesoro pirata y se embarca en una expedición llena de traiciones. Edición digital de demostración.', 1, 0, 1, 200.00, 'libro_9dc4f841fa0063f97c7a16198b1f7c63.pdf'),
+('Alicia en el país de las maravillas', 'Lewis Carroll', 1865, NULL, 4, 0, NULL, 0, NULL,
+ 'Alicia cae por una madriguera y llega a un mundo de personajes extraños y lógica absurda. Edición digital de demostración.', 1, 0, 1, 190.00, 'libro_cd7975ebe0f23365ed30c1d43dce491c.pdf'),
+('Cuentos de la selva', 'Horacio Quiroga', 1918, NULL, 3, 0, NULL, 0, NULL,
+ 'Ocho cuentos protagonizados por animales de la selva misionera, escritos por el autor uruguayo para sus hijos. Edición digital de demostración.', 1, 0, 1, 170.00, 'libro_bae438c40723616b811cca8597f53e7f.pdf'),
+('María', 'Jorge Isaacs', 1867, NULL, 9, 0, NULL, 0, NULL,
+ 'La historia de amor entre Efraín y María en el Valle del Cauca. Una de las novelas románticas más importantes de la literatura hispanoamericana. Edición digital de demostración.', 1, 0, 1, 180.00, 'libro_621aeba858890ce54b344dd53a4b809f.pdf');
+
+-- ------------------------------------------------------------
+-- TABLA VENTAS
+-- Cada fila es una venta: quién compró, quién vendió, cuándo y
+-- por cuánto. Los libros vendidos van en la tabla venta_lineas.
+-- El cliente o el vendedor pueden quedar vacíos (NULL), por
+-- ejemplo en una venta de mostrador a alguien sin cuenta, pero
+-- no los dos a la vez.
+-- ------------------------------------------------------------
+CREATE TABLE ventas (
+    id INT AUTO_INCREMENT PRIMARY KEY,           -- Número único de cada venta (se asigna solo)
+    id_cliente INT NULL,                         -- Usuario que compró (id de la tabla usuarios); puede quedar vacío
+    id_vendedor INT NULL,                        -- Bibliotecario que vendió (id de la tabla usuarios); puede quedar vacío
+    fecha DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,   -- Fecha y hora de la venta (se pone sola)
+    total DECIMAL(10,2) NOT NULL DEFAULT 0,      -- Importe total de la venta
+    CONSTRAINT fk_ventas_cliente FOREIGN KEY (id_cliente) REFERENCES usuarios(id),     -- El cliente tiene que existir
+    CONSTRAINT fk_ventas_vendedor FOREIGN KEY (id_vendedor) REFERENCES usuarios(id),   -- El vendedor tiene que existir
+    CONSTRAINT chk_ventas_cliente_o_vendedor CHECK (id_cliente IS NOT NULL OR id_vendedor IS NOT NULL)   -- No pueden faltar los dos
+);
+
+-- ------------------------------------------------------------
+-- TABLA VENTA_LINEAS
+-- Cada fila es un libro dentro de una venta, con la cantidad y
+-- el precio al que se vendió (se guarda aparte del precio del
+-- libro para que la venta no cambie si el libro sube de precio).
+--
+-- ON DELETE RESTRICT en las dos claves foráneas:
+--   * No se puede borrar un libro que ya fue vendido. Para
+--     quitarlo del catálogo se usa la baja lógica (activo = 0).
+--   * No se puede borrar una venta que tiene líneas: primero hay
+--     que borrar sus líneas a propósito.
+-- ------------------------------------------------------------
+CREATE TABLE venta_lineas (
+    id INT AUTO_INCREMENT PRIMARY KEY,           -- Número único de cada línea (se asigna solo)
+    venta_id INT NOT NULL,                       -- Venta a la que pertenece (id de la tabla ventas)
+    libro_id INT NOT NULL,                       -- Libro vendido (id de la tabla libros)
+    cantidad INT NOT NULL,                       -- Cuántas copias se vendieron
+    precio DECIMAL(8,2) NOT NULL,                -- Precio de cada copia en el momento de la venta
+    formato VARCHAR(10) NOT NULL DEFAULT 'fisico',   -- En qué formato se vendió: 'fisico' o 'digital'
+    CONSTRAINT fk_venta_lineas_venta FOREIGN KEY (venta_id) REFERENCES ventas(id) ON DELETE RESTRICT,
+    CONSTRAINT fk_venta_lineas_libro FOREIGN KEY (libro_id) REFERENCES libros(id) ON DELETE RESTRICT,
+    CONSTRAINT chk_venta_lineas_cantidad CHECK (cantidad > 0),    -- La cantidad tiene que ser positiva
+    CONSTRAINT chk_venta_lineas_precio CHECK (precio >= 0),       -- El precio no puede ser negativo
+    CONSTRAINT chk_venta_lineas_formato CHECK (formato IN ('fisico', 'digital'))   -- Solo se permiten esos dos formatos
+);
+
+-- ------------------------------------------------------------
+-- VENTAS DE PRUEBA
+-- Venta 1: el bibliotecario de prueba (usuario 1) le vende al
+--          cliente de prueba (usuario 2).
+-- Venta 2: venta de mostrador a alguien sin cuenta (sin cliente).
+-- El total de cada venta es la suma de cantidad x precio de sus líneas.
+-- ------------------------------------------------------------
+INSERT INTO ventas (id_cliente, id_vendedor, fecha, total) VALUES
+(2, 1, '2026-09-30 10:15:00', 1670.00),      -- venta 1
+(NULL, 1, '2026-10-01 16:40:00', 590.00);    -- venta 2
+
+INSERT INTO venta_lineas (venta_id, libro_id, cantidad, precio, formato) VALUES
+(1, 2, 1, 890.00, 'fisico'),   -- venta 1: 1 x Don Quijote de la Mancha   =  890.00
+(1, 4, 2, 390.00, 'fisico'),   -- venta 1: 2 x El principito              =  780.00  (total 1670.00)
+(2, 3, 1, 590.00, 'fisico');   -- venta 2: 1 x 1984                       =  590.00  (total  590.00)
+
+-- ------------------------------------------------------------
+-- TABLA RESENIAS
+-- Guarda las valoraciones (1 a 5 estrellas) y comentarios que
+-- los usuarios dejan en cada libro.
+-- ------------------------------------------------------------
+CREATE TABLE resenias (
     id INT AUTO_INCREMENT PRIMARY KEY,           -- Número único de cada reseña
     libro_id INT NOT NULL,                       -- Libro reseñado (id de la tabla libros)
     usuario_id INT NOT NULL,                     -- Quién la escribió (id de la tabla usuarios)
     puntuacion TINYINT NOT NULL,                 -- Estrellas, de 1 a 5
     comentario TEXT,                             -- Opinión escrita del usuario
     fecha DATETIME DEFAULT CURRENT_TIMESTAMP,    -- Fecha en que se escribió (se pone sola)
-    UNIQUE (libro_id, usuario_id)                -- Cada usuario solo puede tener una reseña por libro
+    UNIQUE (libro_id, usuario_id),               -- Cada usuario solo puede tener una reseña por libro
+    CONSTRAINT fk_resenias_libro FOREIGN KEY (libro_id) REFERENCES libros(id),         -- El libro tiene que existir
+    CONSTRAINT fk_resenias_usuario FOREIGN KEY (usuario_id) REFERENCES usuarios(id),   -- El usuario tiene que existir
+    CONSTRAINT chk_resenias_puntuacion CHECK (puntuacion BETWEEN 1 AND 5)              -- La puntuación va de 1 a 5
 );
 
 -- ------------------------------------------------------------
--- TABLA LIBROS
--- Se borra y se vuelve a crear para que, al importar de nuevo,
--- el catálogo quede siempre con los libros de abajo sin repetir.
--- Ojo: al importar de nuevo, el stock vuelve a los valores de abajo.
+-- RESEÑAS DE PRUEBA
+-- Dos reseñas del cliente de prueba (usuario 2):
+-- una de Don Quijote (libro 2) y otra de 1984 (libro 3).
 -- ------------------------------------------------------------
-DROP TABLE IF EXISTS libros;
-
-CREATE TABLE libros (
-    id INT AUTO_INCREMENT PRIMARY KEY,     -- Número único de cada libro (se asigna solo)
-    titulo VARCHAR(150) NOT NULL,          -- Título del libro
-    autor VARCHAR(100) NOT NULL,           -- Autor del libro
-    anio INT,                              -- Año de publicación
-    portada VARCHAR(255),                  -- Dirección (URL) de la imagen de portada
-    genero VARCHAR(50),                    -- Género literario
-    descripcion TEXT,                      -- Resumen que se muestra en la página de detalle
-    stock INT NOT NULL DEFAULT 0           -- Copias disponibles (0 = agotado)
-);
-
--- ------------------------------------------------------------
--- LIBROS DEL CATÁLOGO
--- Inserta los 10 libros que se muestran en la web.
--- Las portadas se cargan desde Open Library usando el ISBN.
--- El número después del género es el stock (copias disponibles).
--- ------------------------------------------------------------
-INSERT INTO libros (titulo, autor, anio, portada, genero, stock, descripcion) VALUES
-('Cien años de soledad', 'Gabriel García Márquez', 1967, 'https://covers.openlibrary.org/b/isbn/9780307474728-L.jpg', 'Realismo mágico', 5,
- 'La historia de siete generaciones de la familia Buendía en el pueblo ficticio de Macondo, desde su fundación hasta su desaparición. Una de las obras más importantes de la literatura latinoamericana.'),
-('Don Quijote de la Mancha', 'Miguel de Cervantes', 1605, 'https://covers.openlibrary.org/b/isbn/9780060934347-L.jpg', 'Novela clásica', 3,
- 'Un hidalgo que ha leído demasiados libros de caballerías decide convertirse en caballero andante y recorre España junto a su escudero Sancho Panza. Considerada la primera novela moderna.'),
-('1984', 'George Orwell', 1949, 'https://covers.openlibrary.org/b/isbn/9780451524935-L.jpg', 'Distopía', 4,
- 'En un estado totalitario vigilado por el Gran Hermano, Winston Smith trabaja reescribiendo la historia hasta que empieza a cuestionar el sistema. Una advertencia sobre el control y la manipulación.'),
-('El principito', 'Antoine de Saint-Exupéry', 1943, 'https://covers.openlibrary.org/b/isbn/9780156012195-L.jpg', 'Fábula', 6,
- 'Un aviador perdido en el desierto conoce a un pequeño príncipe llegado de otro planeta. A través de sus viajes, el libro reflexiona sobre la amistad, el amor y la forma de ver el mundo de los adultos.'),
-('Harry Potter y la piedra filosofal', 'J. K. Rowling', 1997, 'https://covers.openlibrary.org/b/isbn/9780590353427-L.jpg', 'Fantasía', 0,
- 'Harry descubre en su undécimo cumpleaños que es un mago y entra en el colegio Hogwarts, donde hace amigos, aprende magia y se enfrenta al misterio de la piedra filosofal.'),
-('El hobbit', 'J. R. R. Tolkien', 1937, 'https://covers.openlibrary.org/b/isbn/9780547928227-L.jpg', 'Fantasía', 2,
- 'Bilbo Bolsón, un hobbit tranquilo, se une a un mago y a trece enanos en un viaje para recuperar un tesoro custodiado por el dragón Smaug.'),
-('Orgullo y prejuicio', 'Jane Austen', 1813, 'https://covers.openlibrary.org/b/isbn/9780141439518-L.jpg', 'Romance', 3,
- 'Elizabeth Bennet y el señor Darcy superan sus primeras impresiones y sus diferencias sociales en la Inglaterra rural del siglo XIX.'),
-('El alquimista', 'Paulo Coelho', 1988, 'https://covers.openlibrary.org/b/isbn/9780062315007-L.jpg', 'Ficción', 1,
- 'Santiago, un joven pastor andaluz, viaja hasta Egipto en busca de un tesoro que vio en sueños y aprende a seguir su propia leyenda personal.'),
-('Fahrenheit 451', 'Ray Bradbury', 1953, 'https://covers.openlibrary.org/b/isbn/9781451673319-L.jpg', 'Ciencia ficción', 0,
- 'En una sociedad donde los libros están prohibidos, el bombero Guy Montag se encarga de quemarlos, hasta que empieza a preguntarse qué contienen.'),
-('Matar a un ruiseñor', 'Harper Lee', 1960, 'https://covers.openlibrary.org/b/isbn/9780061120084-L.jpg', 'Novela', 4,
- 'Narrada por la pequeña Scout Finch, cuenta cómo su padre, el abogado Atticus Finch, defiende a un hombre negro acusado injustamente en el sur de Estados Unidos.');
+INSERT INTO resenias (libro_id, usuario_id, puntuacion, comentario) VALUES
+(2, 2, 5, 'Un clásico que vale la pena leer. Muy divertido.'),
+(3, 2, 4, 'Una historia que hace pensar. Muy recomendable.');
