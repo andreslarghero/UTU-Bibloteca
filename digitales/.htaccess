@@ -1,0 +1,10 @@
+# ============================================================
+# CARPETA DE LIBROS DIGITALES
+# Aquí se guardan los archivos PDF y EPUB que el bibliotecario
+# sube desde "Gestionar libros".
+#
+# Esta regla le dice al servidor (Apache) que NADIE puede abrir
+# estos archivos escribiendo su dirección en el navegador.
+# Los archivos solo los puede leer el código PHP del proyecto.
+# ============================================================
+Require all denied

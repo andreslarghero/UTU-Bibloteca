@@ -1,0 +1,49 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R] /Count 1 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 4 0 R /F2 5 0 R >> >> /Contents 6 0 R >>
+endobj
+4 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>
+endobj
+5 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>
+endobj
+6 0 obj
+<< /Length 622 >>
+stream
+0.059 0.090 0.165 rg 0 742 595 100 re f
+0.078 0.722 0.651 rg 56 768 64 3 re f
+1 1 1 rg BT /F2 17 Tf 56 782 Td (Biblioteca Digital) Tj ET
+0.059 0.090 0.165 rg
+BT /F2 26 Tf 56 660 Td (Lazarillo de Tormes) Tj ET
+0.35 0.38 0.45 rg BT /F1 15 Tf 56 624 Td (Anónimo) Tj ET
+0.114 0.306 0.847 RG 1.2 w 56 598 m 539 598 l S
+0.059 0.090 0.165 rg BT /F1 12 Tf 56 558 Td (Archivo digital de demostración para el proyecto Biblioteca Digital.) Tj ET
+BT /F1 12 Tf 56 538 Td (Este archivo no contiene la obra original.) Tj ET
+0.35 0.38 0.45 rg BT /F1 9 Tf 56 60 Td (Biblioteca Digital - proyecto educativo. Archivo de demostración.) Tj ET
+endstream
+endobj
+7 0 obj
+<< /Title (Lazarillo de Tormes) /Author (Proyecto Biblioteca Digital) /Subject (Archivo digital de demostración) >>
+endobj
+xref
+0 8
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000115 00000 n 
+0000000251 00000 n 
+0000000348 00000 n 
+0000000450 00000 n 
+0000001122 00000 n 
+trailer
+<< /Size 8 /Root 1 0 R /Info 7 0 R >>
+startxref
+1253
+%%EOF

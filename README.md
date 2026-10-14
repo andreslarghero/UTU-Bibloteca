@@ -1,58 +1,211 @@
-# Biblioteca Digital
+# Biblioteca Digital - NEXORA
 
-Página web básica de una biblioteca digital hecha con **HTML, CSS, PHP y MySQL**.
+Aplicación web de una biblioteca que vende libros **físicos** (en el mostrador) y **digitales** (por la web), con una parte **STEAM**: un Arduino con pantalla LCD, LED y zumbador que muestra el resultado de cada libro escaneado en la Caja.
+
+Proyecto académico del grupo **NEXORA** (grupo de clase TH1, 2026).
+
+> **Estado:** proyecto terminado. Diseño Web, Programación, Base de Datos, Ingeniería de Software y STEAM completos. STEAM validado con la placa física.
+
+---
+
+## Tecnologías
+
+- PHP 8 (extensión `mysqli`)
+- MySQL / MariaDB
+- HTML
+- CSS (una sola hoja: `css/estilos.css`)
+- JavaScript puro, sin librerías (`js/main.js`)
+- Arduino (programa para Arduino Uno)
+- Python 3
+- pyserial
+
+No usa frameworks ni servicios externos: funciona en una computadora local, sin internet.
+
+---
+
+## Requisitos
+
+- **XAMPP** (Apache, PHP 8 y MySQL/MariaDB) en Windows.
+- Un navegador actual.
+- Para STEAM:
+  - **Python 3** con `pyserial`.
+  - **Arduino IDE**, si se usa la placa física.
+  - Arduino Uno, LCD 16x2 con módulo I2C, LED verde, LED rojo, dos resistencias de 220 ohm y un zumbador (piezo).
+
+---
+
+## Estructura del repositorio
+
+```
+PROYECTO/
+├── index.php                 Página de inicio
+├── index.html                Dirección anterior: lleva a index.php
+├── .htaccess                 Impide abrir los archivos .md desde el navegador
+├── css/estilos.css           Estilos de todo el sitio
+├── js/main.js                JavaScript de todo el sitio
+├── img/portadas/             20 portadas locales (.webp) de los libros físicos
+├── digitales/                10 PDF de demostración (protegidos con .htaccess)
+├── php/                      Páginas y lógica del sitio
+│   ├── conexion.php          Conexión a la base de datos
+│   ├── steam.php             Aviso al Arduino (STEAM)
+│   └── ...
+├── sql/biblioteca.sql        Instalación limpia de la base de datos
+└── steam/
+    ├── README_STEAM.md       Circuito, conexiones, comandos y validación
+    ├── arduino/biblioteca_steam.ino
+    └── puente/
+        ├── puente_arduino.py Puente PC → Arduino
+        ├── requirements.txt
+        └── README_PUENTE.md
+```
+
+Los documentos de la entrega (documento final, planilla de pruebas, matriz de riesgos, actas, DER y documentación de Ingeniería y de Base de Datos) se entregan aparte y **no forman parte de este repositorio**.
+
+---
+
+## Instalación
+
+1. **Clonar** el repositorio dentro de la carpeta web de XAMPP:
+
+   ```
+   cd C:\xampp\htdocs
+   git clone https://github.com/andreslarghero/UTU-Bibloteca.git PROYECTO
+   ```
+
+   También se puede clonar en otro lugar y copiar la carpeta a `C:\xampp\htdocs\PROYECTO`, incluidos los archivos `.htaccess`.
+
+2. **Iniciar Apache y MySQL** desde el panel de control de XAMPP.
+
+3. **Crear la base de datos** importando `sql/biblioteca.sql`: abrir `http://localhost/phpmyadmin`, ir a **Importar**, elegir `sql/biblioteca.sql` y pulsar **Importar**.
+
+   `biblioteca.sql` es una **instalación limpia de demostración** (cumple la función de `schema.sql`): crea la base `biblioteca`, sus 6 tablas y datos de ejemplo. No es una copia de ninguna base real.
+
+   > **Atención:** si ya existe una base `biblioteca` en uso, el script borra y vuelve a crear sus tablas. Hacer un backup antes.
+
+4. **Abrir** en el navegador:
+
+   ```
+   http://localhost/PROYECTO/
+   ```
+
+### Conexión a la base
+
+Los datos de conexión están en `php/conexion.php` y vienen con los valores por defecto de XAMPP para un **entorno local**: servidor `localhost`, usuario `root` sin contraseña y base `biblioteca`. Si el MySQL de la computadora usa otros datos, se cambian en ese archivo. **No usar esta configuración en un servidor público.**
+
+### Cuentas de demostración
+
+La instalación limpia trae dos cuentas ficticias: `bibliotecario@example.com` (bibliotecario) y `cliente@example.com` (cliente). Sus contraseñas no se publican (en el SQL están cifradas) y se entregan por separado al docente. También se puede crear una cuenta nueva desde **Registrarse** (queda como cliente) y cambiar su rol desde **Gestionar usuarios** con una cuenta de bibliotecario.
+
+---
 
 ## Funcionalidades
 
-- Registro e inicio de sesión de usuarios (nombre, correo y contraseña cifrada).
-- Catálogo de 10 libros con portada, autor, año y disponibilidad.
-- Buscador de libros por título o autor.
-- Página de detalle de cada libro con género y descripción.
-- Reseñas y valoraciones de 1 a 5 estrellas (cada usuario puede escribir, editar y eliminar su reseña).
-- Panel de administrador:
-  - **Gestionar stock**: cambiar las copias disponibles de cada libro (0 = agotado).
-  - **Gestionar reseñas**: ver y eliminar cualquier reseña.
+| Rol | Qué puede hacer |
+|---|---|
+| Visitante | Ver el inicio, registrarse e iniciar sesión |
+| Cliente | Catálogo, búsqueda, filtro por categoría, ficha del libro, reseñas, perfil, compra digital, Mis compras y descarga del libro comprado |
+| Bibliotecario | Todo lo del cliente, más Caja del mostrador, Operaciones, Stock, Libros, Usuarios y Reseñas |
 
-## Estructura
+- El catálogo requiere haber iniciado sesión.
+- La compra digital es **simulada** (no hay medio de pago).
+- Los libros y los usuarios no se borran: se dan de **baja lógica** y se pueden reactivar.
+- El sitio es **responsive** (de 320 px a 1920 px) y funciona también sin JavaScript.
+
+---
+
+## STEAM
+
+Lector + PC + Arduino. El lector de códigos de barras se usa en la **Caja** (solo el bibliotecario) y lee **solo libros físicos**. La Caja busca el código en la base con PHP; el Arduino **no consulta la base**: solo muestra el resultado.
 
 ```
-index.html            Página de inicio
-css/estilos.css       Estilos de todas las páginas
-php/conexion.php      Conexión a la base de datos
-php/registro.php      Crear cuenta
-php/login.php         Iniciar sesión
-php/logout.php        Cerrar sesión
-php/libros.php        Catálogo y buscador
-php/libro.php         Detalle del libro y reseñas
-php/stock.php         Gestión de stock (solo admin)
-php/resenas.php       Gestión de reseñas (solo admin)
-sql/biblioteca.sql    Base de datos: tablas y libros
+Caja PHP (busca en MySQL)
+        ↓
+comando local (steam/puente/comando_steam.txt)
+        ↓
+puente Python (puente_arduino.py)
+        ↓  USB Serial, 9600 baud
+Arduino Uno
+        ↓
+LCD 16x2 I2C + LED verde / rojo + zumbador
 ```
 
-## Instalación (con XAMPP)
+| Comando | Cuándo | LCD | LED | Sonido |
+|---|---|---|---|---|
+| `OK\|titulo\|precio` | Libro físico con stock | Título / `$precio` | Verde | Bip corto |
+| `NO_ENCONTRADO` | El código no existe | `No encontrado` | Rojo | Bip largo |
+| `AGOTADO\|titulo` | Libro físico con stock 0 | Título / `Sin stock` | Rojo | Tres bips |
 
-1. Instala [XAMPP](https://www.apachefriends.org/) y arranca **Apache** y **MySQL** desde el panel de control.
-2. Copia la carpeta del proyecto dentro de `C:\xampp\htdocs\` con el nombre `PROYECTO`.
-3. Abre phpMyAdmin (`http://localhost/phpmyadmin`), ve a la pestaña **Importar** y sube el archivo `sql/biblioteca.sql`.
-   Se crea la base de datos `biblioteca` con las tablas `usuarios`, `libros` y `resenas`.
-4. Abre `http://localhost/PROYECTO/index.html` en el navegador.
+**Conexiones:** LCD I2C (VCC → 5V, GND → GND, SDA → A4, SCL → A5) · LED verde: D8 → 220 ohm → LED → GND · LED rojo: D9 → 220 ohm → LED → GND · zumbador: D10 → positivo, negativo → GND.
 
-Si tu MySQL usa un usuario o contraseña distintos a los de XAMPP (`root` sin contraseña), cámbialos en `php/conexion.php`.
+### Puesta en marcha
 
-## Crear un administrador
+1. Cargar `steam/arduino/biblioteca_steam.ino` en el Arduino Uno con el Arduino IDE y conectarlo por USB.
+2. Instalar la dependencia del puente (una sola vez), desde la carpeta del proyecto:
 
-Todas las cuentas nuevas se crean como usuarios normales. Para convertir una en administrador:
-
-1. Regístrate en la web.
-2. En phpMyAdmin, entra en la base `biblioteca`, abre la pestaña **SQL** y ejecuta (con tu correo):
-
-   ```sql
-   UPDATE usuarios SET admin = 1 WHERE correo = 'tucorreo@gmail.com';
+   ```
+   pip install -r steam/puente/requirements.txt
    ```
 
-3. Cierra sesión y vuelve a entrar. Aparecerán en el menú **Gestionar stock** y **Gestionar reseñas**.
+3. Ejecutar el puente en modo archivo (recibe los escaneos de la Caja):
 
-## Notas
+   ```
+   python steam/puente/puente_arduino.py --archivo
+   ```
 
-- Las portadas se cargan desde [Open Library](https://openlibrary.org/), así que hace falta conexión a internet para verlas.
-- Si vuelves a importar `sql/biblioteca.sql`, los usuarios y las reseñas se mantienen, pero la tabla de libros se vuelve a crear y el stock regresa a los valores del archivo.
+   Elegir el puerto del Arduino de la lista (o indicarlo con `--puerto COM3`) y esperar `Arduino -> LISTO`.
+
+4. Entrar a la Caja como bibliotecario y escanear un libro.
+
+Sin Arduino, el mismo flujo se puede ver en la consola con el modo simulación:
+
+```
+python steam/puente/puente_arduino.py --archivo --simular
+```
+
+### Ruta del archivo de comando
+
+La Caja escribe el archivo de comando en `steam/puente/comando_steam.txt`, **dentro del propio proyecto** (la ruta se calcula desde `php/steam.php`), y el puente lo lee de esa misma carpeta. Por eso funciona en cualquier PC sin configurar nada.
+
+Si en una computadora el puente se ejecuta desde otra carpeta, se puede crear `php/steam_config_local.php` (no se sube al repositorio) con:
+
+```php
+<?php define("STEAM_ARCHIVO_COMANDO", "D:/otra/carpeta/steam/puente/comando_steam.txt"); ?>
+```
+
+o lanzar el puente con `--archivo "ruta\comando_steam.txt"`.
+
+Si STEAM no está disponible (puente apagado, sin Arduino o sin permiso de escritura), la Caja sigue vendiendo igual.
+
+Más detalle: [`steam/README_STEAM.md`](steam/README_STEAM.md) y [`steam/puente/README_PUENTE.md`](steam/puente/README_PUENTE.md).
+
+---
+
+## Base de datos
+
+- **6 tablas:** `usuarios`, `categorias`, `libros`, `ventas`, `venta_lineas` y `resenias`.
+- Claves primarias y foráneas (con `ON DELETE RESTRICT`), `UNIQUE` en el correo y en el código de barras, y restricciones `CHECK` (stock no negativo, puntuación de 1 a 5, cliente o vendedor en cada venta, etc.).
+- Datos de demostración: **30 libros** (20 físicos y 10 digitales), **9 categorías**, 2 usuarios, 2 ventas con 3 líneas y 2 reseñas.
+- Los 10 archivos de `digitales/` son PDF de demostración propios, de una página: **no contienen las obras originales**.
+
+---
+
+## Seguridad
+
+- Contraseñas cifradas con `password_hash` y comprobadas con `password_verify`.
+- **Consultas preparadas** (prepared statements) en todas las consultas con datos del usuario.
+- **Roles y estado** (activo o dado de baja) comprobados en la base **en cada petición**.
+- Ventas dentro de **transacciones**, con bloqueo de filas para el stock.
+- **Descargas protegidas:** los PDF no se pueden abrir por su dirección (`digitales/.htaccess`); solo se entregan a quien compró el libro.
+- Textos mostrados con `htmlspecialchars`.
+- `.htaccess` en `sql/` y `steam/` (y regla para los `.md`) para que no se puedan abrir desde el navegador.
+
+---
+
+## Equipo
+
+- Andrés Larghero Pankovoski
+- Juan Manuel Núñez Pereira
+- Bruno Nicolás Mariño Perdomo
+- Santiago Falero
+
+Los cuatro integrantes participaron de forma compartida en todas las materias.

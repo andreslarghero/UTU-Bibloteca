@@ -1,0 +1,9 @@
+# ============================================================
+# CARPETA SQL
+# Aquí está biblioteca.sql, el archivo para instalar la base de
+# datos. Es material del proyecto, no una página del sitio.
+#
+# Esta regla le dice al servidor (Apache) que NADIE puede abrir
+# estos archivos escribiendo su dirección en el navegador.
+# ============================================================
+Require all denied
