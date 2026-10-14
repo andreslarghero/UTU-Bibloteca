@@ -10,3 +10,7 @@
 <FilesMatch "\.md$">
     Require all denied
 </FilesMatch>
+
+# Si el proyecto se clona con Git dentro de htdocs, la carpeta .git
+# y los archivos .gitignore tampoco se pueden abrir desde el navegador.
+RedirectMatch 403 /\.git
