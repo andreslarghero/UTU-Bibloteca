@@ -25,10 +25,7 @@ include "verificar_usuario.php";
 // acepta un valor formado por dígitos; cualquier otra cosa se
 // trata como 0 (un libro que no existe).
 // ------------------------------------------------------------
-$libro_id = 0;
-if (isset($_GET["libro"]) && is_string($_GET["libro"]) && ctype_digit($_GET["libro"])) {
-    $libro_id = (int) $_GET["libro"];
-}
+$libro_id = entero_de($_GET["libro"] ?? null);
 
 // ------------------------------------------------------------
 // ¿ESTE USUARIO COMPRÓ ESTE LIBRO EN DIGITAL?
@@ -40,20 +37,19 @@ if (isset($_GET["libro"]) && is_string($_GET["libro"]) && ctype_digit($_GET["lib
 // Una venta de mostrador (sin cliente) o una compra en formato
 // físico no dan derecho a la descarga.
 // ------------------------------------------------------------
-$consulta = mysqli_prepare($conexion,
+$compra = buscar_fila($conexion,
     "SELECT libros.titulo, libros.archivo_digital
      FROM venta_lineas
      JOIN ventas ON ventas.id = venta_lineas.venta_id
      JOIN libros ON libros.id = venta_lineas.libro_id
      WHERE ventas.id_cliente = ? AND venta_lineas.libro_id = ? AND venta_lineas.formato = 'digital'
-       AND libros.archivo_digital IS NOT NULL
-     LIMIT 1");
-mysqli_stmt_bind_param($consulta, "ii", $_SESSION["id"], $libro_id);
-mysqli_stmt_execute($consulta);
-$compra = mysqli_fetch_assoc(mysqli_stmt_get_result($consulta));
+     AND libros.archivo_digital IS NOT NULL
+     LIMIT 1",
+    "ii", $_SESSION["id"], $libro_id);
 
 // Ya no hace falta la base de datos.
 mysqli_close($conexion);
+unset($conexion);   // así pie.php no la cierra de nuevo
 
 // ------------------------------------------------------------
 // UBICAR EL ARCHIVO
@@ -94,10 +90,7 @@ if ($error == "") {
     //  - "filename*": el título completo con sus acentos (en UTF-8), que es
     //    el que usan los navegadores actuales.
     $titulo = trim(preg_replace('/[\x00-\x1F\x7F"\\\\\/:*?<>|]/u', "", $compra["titulo"]));
-    $titulo_simple = strtr($titulo, [
-        "á" => "a", "é" => "e", "í" => "i", "ó" => "o", "ú" => "u", "ü" => "u", "ñ" => "n",
-        "Á" => "A", "É" => "E", "Í" => "I", "Ó" => "O", "Ú" => "U", "Ü" => "U", "Ñ" => "N"
-    ]);
+    $titulo_simple = quitar_tildes($titulo);
     $titulo_simple = trim(preg_replace("/[^A-Za-z0-9 _-]/", "", $titulo_simple));
     if ($titulo == "" || $titulo_simple == "") {
         $titulo = "libro";
@@ -123,16 +116,10 @@ if ($error == "") {
 // ------------------------------------------------------------
 http_response_code($compra ? 404 : 403);
 ?>
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Descarga - Biblioteca Digital</title>
-    <link rel="stylesheet" href="../css/estilos.css?v=28">
-</head>
-<body>
-<?php include "navbar.php"; ?>
+<?php
+$titulo_pagina = "Descarga";
+include "cabecera.php";
+?>
 
     <main>
         <h2>Descarga</h2>
@@ -140,9 +127,4 @@ http_response_code($compra ? 404 : 403);
         <p><a class="volver" href="mis_compras.php">&larr; Ir a Mis compras</a></p>
     </main>
 
-    <!-- Pie de página -->
-    <footer>
-        <p>Biblioteca Digital</p>
-    </footer>
-</body>
-</html>
+<?php include "pie.php"; ?>

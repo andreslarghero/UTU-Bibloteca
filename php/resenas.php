@@ -40,16 +40,10 @@ $resultado = mysqli_query($conexion,
      JOIN usuarios ON usuarios.id = resenias.usuario_id
      ORDER BY resenias.fecha DESC");
 ?>
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gestión de reseñas - Biblioteca Digital</title>
-    <link rel="stylesheet" href="../css/estilos.css?v=28">
-</head>
-<body>
-<?php include "navbar.php"; ?>
+<?php
+$titulo_pagina = "Gestión de reseñas";
+include "cabecera.php";
+?>
 
     <main>
         <h2>Gestión de reseñas</h2>
@@ -67,7 +61,7 @@ $resultado = mysqli_query($conexion,
         <!-- Tabla con todas las reseñas -->
         <!-- "tabla-scroll": en un móvil la tabla se desplaza de lado dentro de este bloque, sin ensanchar la página -->
         <div class="tabla-scroll">
-        <table class="tabla-stock">
+        <table class="tabla">
             <tr>
                 <th>Libro</th>
                 <th>Usuario</th>
@@ -98,13 +92,4 @@ $resultado = mysqli_query($conexion,
         <?php } ?>
     </main>
 
-    <!-- Pie de página -->
-    <footer>
-        <p>Biblioteca Digital</p>
-    </footer>
-</body>
-</html>
-<?php
-// Cierra la conexión con la base de datos al terminar la página.
-mysqli_close($conexion);
-?>
+<?php include "pie.php"; ?>

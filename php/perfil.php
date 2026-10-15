@@ -30,10 +30,7 @@ $errores = [];
 // DATOS ACTUALES DEL USUARIO
 // No se pide la contraseña cifrada: nunca sale en la página.
 // ------------------------------------------------------------
-$consulta = mysqli_prepare($conexion, "SELECT nombre, correo, rol, activo FROM usuarios WHERE id = ?");
-mysqli_stmt_bind_param($consulta, "i", $id);
-mysqli_stmt_execute($consulta);
-$perfil = mysqli_fetch_assoc(mysqli_stmt_get_result($consulta));
+$perfil = buscar_fila($conexion, "SELECT nombre, correo, rol, activo FROM usuarios WHERE id = ?", "i", $id);
 
 // Valores que se muestran en el formulario.
 $nombre = $perfil["nombre"];
@@ -47,10 +44,10 @@ $correo = $perfil["correo"];
 // ------------------------------------------------------------
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     // Recoge lo escrito. trim() quita los espacios sobrantes.
-    $nombre = (isset($_POST["nombre"]) && is_string($_POST["nombre"])) ? trim($_POST["nombre"]) : "";
-    $correo = (isset($_POST["correo"]) && is_string($_POST["correo"])) ? trim($_POST["correo"]) : "";
-    $clave = (isset($_POST["clave"]) && is_string($_POST["clave"])) ? $_POST["clave"] : "";
-    $clave_actual = (isset($_POST["clave_actual"]) && is_string($_POST["clave_actual"])) ? $_POST["clave_actual"] : "";
+    $nombre = texto_de($_POST["nombre"] ?? null);
+    $correo = texto_de($_POST["correo"] ?? null);
+    $clave = texto_de($_POST["clave"] ?? null, false);
+    $clave_actual = texto_de($_POST["clave_actual"] ?? null, false);
 
     // Qué quiere cambiar el usuario. Para cambiar solo el nombre no hace
     // falta la contraseña actual; para el correo o la contraseña, sí.
@@ -58,26 +55,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $cambia_clave = ($clave != "");
 
     // ---------- Validaciones ----------
-    if ($nombre == "") {
-        $errores[] = "El nombre es obligatorio.";
-    } elseif (strlen($nombre) > 100) {
-        $errores[] = "El nombre es demasiado largo.";
-    }
-
-    if ($correo == "") {
-        $errores[] = "El correo es obligatorio.";
-    } elseif (strlen($correo) > 150 || !filter_var($correo, FILTER_VALIDATE_EMAIL)) {
-        $errores[] = "El correo no es válido.";
-    } else {
-        // El correo no puede ser el de OTRO usuario. "id <> ?" permite
-        // que el usuario conserve su propio correo.
-        $consulta = mysqli_prepare($conexion, "SELECT id FROM usuarios WHERE correo = ? AND id <> ?");
-        mysqli_stmt_bind_param($consulta, "si", $correo, $id);
-        mysqli_stmt_execute($consulta);
-        if (mysqli_fetch_assoc(mysqli_stmt_get_result($consulta))) {
-            $errores[] = "Ya existe otro usuario con ese correo.";
-        }
-    }
+    $errores = validar_nombre_correo($conexion, $nombre, $correo, $id);
 
     // ---------- Contraseña actual ----------
     // Si se cambia el correo o la contraseña (o las dos cosas), hay que
@@ -85,10 +63,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     if ($cambia_correo || $cambia_clave) {
         // Se trae la contraseña cifrada de la cuenta de la sesión. Solo se usa
         // aquí para compararla; nunca se envía a la página.
-        $consulta = mysqli_prepare($conexion, "SELECT clave FROM usuarios WHERE id = ?");
-        mysqli_stmt_bind_param($consulta, "i", $id);
-        mysqli_stmt_execute($consulta);
-        $fila = mysqli_fetch_assoc(mysqli_stmt_get_result($consulta));
+        $fila = buscar_fila($conexion, "SELECT clave FROM usuarios WHERE id = ?", "i", $id);
 
         // password_verify compara lo escrito con la contraseña cifrada.
         // El mismo aviso sirve si se dejó vacía o si está mal.
@@ -127,7 +102,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
             // Guarda el aviso en la sesión y recarga la página, para que
             // al refrescar el navegador no se repita el guardado.
-            $_SESSION["perfil_mensaje"] = $aviso;
+            aviso_guardar("perfil", $aviso);
             header("Location: perfil.php");
             exit;
         }
@@ -140,19 +115,12 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 // AVISO DE LA ÚLTIMA ACCIÓN
 // Se lee de la sesión y se borra, para que se muestre una sola vez.
 // ------------------------------------------------------------
-$mensaje = isset($_SESSION["perfil_mensaje"]) ? $_SESSION["perfil_mensaje"] : "";
-unset($_SESSION["perfil_mensaje"]);
+list($mensaje) = aviso_leer("perfil");
 ?>
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mi perfil - Biblioteca Digital</title>
-    <link rel="stylesheet" href="../css/estilos.css?v=28">
-</head>
-<body>
-<?php include "navbar.php"; ?>
+<?php
+$titulo_pagina = "Mi perfil";
+include "cabecera.php";
+?>
 
     <main>
         <h2>Mi perfil</h2>
@@ -216,13 +184,4 @@ unset($_SESSION["perfil_mensaje"]);
         </form>
     </main>
 
-    <!-- Pie de página -->
-    <footer>
-        <p>Biblioteca Digital</p>
-    </footer>
-</body>
-</html>
-<?php
-// Cierra la conexión con la base de datos al terminar la página.
-mysqli_close($conexion);
-?>
+<?php include "pie.php"; ?>

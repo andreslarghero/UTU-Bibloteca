@@ -40,6 +40,7 @@
     --color-fondo: #f1f5f9;       /* gris claro: fondo del inicio, del login, del registro y de la ficha del libro */
 
     /* Derivados de esos cuatro (mismo color, con transparencia) */
+    --color-white: #fff;                              /* blanco: texto sobre fondos de color y oscuros */
     --color-surface: #ffffff;                         /* tarjetas, formularios, tablas */
     --color-text: var(--color-dark);
     --color-text-soft: rgba(15, 23, 42, 0.66);        /* texto secundario */
@@ -199,8 +200,10 @@ main h3 {
     font-size: 18px;
 }
 
-/* Texto corto debajo del título que explica para qué sirve la página */
-.descripcion-pagina {
+/* Texto corto debajo del título que explica para qué sirve la página
+   (el texto del diálogo de confirmación se ve igual) */
+.descripcion-pagina,
+.dialogo p {
     margin: 0 0 var(--space-5);
     color: var(--color-text-soft);
 }
@@ -257,7 +260,7 @@ header {
     z-index: 20;
     background-color: var(--color-dark);
     box-shadow: 0 1px 0 var(--color-border-dark);
-    color: #fff;
+    color: var(--color-white);
 }
 
 /* Como la cabecera tapa la parte de arriba de la pantalla, los
@@ -312,14 +315,14 @@ nav a {
 }
 
 nav a:hover {
-    color: #fff;
+    color: var(--color-white);
     background-color: rgba(255, 255, 255, 0.08);
 }
 
 /* Enlace de la página en la que está el usuario: texto blanco y
    una línea de color debajo */
 nav a.activo {
-    color: #fff;
+    color: var(--color-white);
 }
 
 nav a.activo::after,
@@ -376,7 +379,7 @@ nav a.salir {
     display: block;
     height: 2px;
     border-radius: 2px;
-    background-color: #fff;
+    background-color: var(--color-white);
     transition: transform var(--transition-normal) var(--ease), opacity var(--transition-fast);
 }
 
@@ -438,7 +441,7 @@ nav a.salir {
 
 .btn-primary {
     background-color: var(--color-primary);
-    color: #fff;
+    color: var(--color-white);
 }
 
 .btn-primary:hover {
@@ -479,7 +482,7 @@ nav a.salir {
 .dialogo .btn-danger {
     background-color: var(--color-error);
     border-color: var(--color-error);
-    color: #fff;
+    color: var(--color-white);
 }
 
 /* Botón deshabilitado: en gris y sin poder pulsarse */
@@ -776,8 +779,12 @@ label.campo-activo {
     align-self: flex-start;
 }
 
-/* --- Formulario de cada fila de stock: número de copias y Guardar --- */
-.form-stock {
+/* --- Formulario de cada fila de stock (número de copias y Guardar),
+   controles del carrusel (anterior, pausa y siguiente) y botones de
+   cada fila de una tabla: elementos en fila con un espacio pequeño --- */
+.form-stock,
+.carrusel-controles,
+.acciones-linea {
     display: flex;
     align-items: center;
     gap: var(--space-2);
@@ -916,7 +923,7 @@ label.campo-activo {
 
 .badge-bibliotecario {
     background-color: var(--color-dark);
-    color: #fff;
+    color: var(--color-white);
 }
 
 /* Categoría del libro: texto pequeño en mayúsculas */
@@ -986,7 +993,7 @@ label.campo-activo {
     border-left: 4px solid var(--color-primary);
     border-radius: var(--radius-md);
     box-shadow: var(--shadow-lg);
-    color: #fff;
+    color: var(--color-white);
     font-size: 14px;
     pointer-events: auto;
 }
@@ -1053,11 +1060,6 @@ label.campo-activo {
     margin: 0 0 var(--space-2);
 }
 
-.dialogo p {
-    margin: 0 0 var(--space-5);
-    color: var(--color-text-soft);
-}
-
 .dialogo-botones {
     display: flex;
     justify-content: flex-end;
@@ -1100,7 +1102,7 @@ label.campo-activo {
     font-weight: 700;
     line-height: 1;
     letter-spacing: 1px;
-    color: #fff;
+    color: var(--color-white);
 }
 
 .portada-titulo {
@@ -1138,13 +1140,12 @@ label.campo-activo {
 
 /* Portadas en miniatura (tablas y libros relacionados): solo las
    iniciales, sin icono ni título */
-.tabla-stock .portada-marco,
-.libro-mini .portada-marco {
+.tabla .portada-marco {
     border-radius: 4px;
 }
 
-.tabla-stock .portada-titulo,
-.tabla-stock .portada-vacia svg,
+.tabla .portada-titulo,
+.tabla .portada-vacia svg,
 .libro-mini .portada-titulo,
 .libro-mini .portada-vacia svg {
     display: none;
@@ -1167,7 +1168,7 @@ label.campo-activo {
         radial-gradient(circle at 70% 90%, rgba(29, 78, 216, 0.35), transparent 50%),
         var(--color-dark);
     border-radius: var(--radius-lg);
-    color: #fff;
+    color: var(--color-white);
     overflow: hidden;
 }
 
@@ -1184,7 +1185,7 @@ label.campo-activo {
     margin: 0 0 var(--space-4);
     font-size: 46px;
     letter-spacing: -1px;
-    color: #fff;
+    color: var(--color-white);
 }
 
 .hero-texto > p {
@@ -1205,12 +1206,12 @@ label.campo-activo {
 .hero .btn-secondary {
     background-color: transparent;
     border-color: rgba(255, 255, 255, 0.35);
-    color: #fff;
+    color: var(--color-white);
 }
 
 .hero .btn-secondary:hover {
     background-color: rgba(255, 255, 255, 0.1);
-    border-color: #fff;
+    border-color: var(--color-white);
 }
 
 /* Composición de libros en 3D. "perspective" da la profundidad. */
@@ -1308,7 +1309,8 @@ main.inicio {
    sección empieza pegada al comienzo de la zona oscura; la
    separación grande va solo entre una sección y la siguiente. --- */
 .bloques,
-.pasos {
+.pasos,
+.relacionados-lista {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
     gap: var(--space-4);
@@ -1401,7 +1403,7 @@ main.inicio {
     padding: 20px var(--space-5);
     background: var(--fondo-decorado);
     border-radius: var(--radius-lg);
-    color: #fff;
+    color: var(--color-white);
 }
 
 .destacados-cabecera {
@@ -1416,7 +1418,7 @@ main.inicio {
 .destacados h3 {
     margin: 0;
     font-size: 22px;
-    color: #fff;
+    color: var(--color-white);
 }
 
 /* Fila de tarjetas (sin JavaScript) */
@@ -1575,13 +1577,6 @@ main.inicio {
     pointer-events: none;
 }
 
-/* Controles: anterior, pausa y siguiente */
-.carrusel-controles {
-    display: flex;
-    align-items: center;
-    gap: var(--space-2);
-}
-
 .carrusel-controles button {
     display: inline-flex;
     align-items: center;
@@ -1592,14 +1587,14 @@ main.inicio {
     border: 1px solid rgba(255, 255, 255, 0.28);
     border-radius: 50%;
     background-color: rgba(255, 255, 255, 0.06);
-    color: #fff;
+    color: var(--color-white);
     cursor: pointer;
     transition: background-color var(--transition-fast), border-color var(--transition-fast);
 }
 
 .carrusel-controles button:hover {
     background-color: rgba(255, 255, 255, 0.16);
-    border-color: #fff;
+    border-color: var(--color-white);
 }
 
 /* Indicadores: un punto por cada libro destacado */
@@ -1699,7 +1694,8 @@ main.ancho-catalogo {
     padding: 12px 14px 14px;
 }
 
-.libro h3 {
+.libro h3,
+.form-caja label {
     margin: 0;
     font-size: 15px;
 }
@@ -1708,7 +1704,8 @@ main.ancho-catalogo {
     margin: 0;
 }
 
-.libro .autor {
+.libro .autor,
+.datos-libro dt {
     font-size: 14px;
     color: var(--color-text-soft);
 }
@@ -1719,7 +1716,9 @@ main.ancho-catalogo {
 }
 
 /* Valoración media pequeña en las tarjetas */
-.valoracion-tarjeta {
+.valoracion-tarjeta,
+.libro-mini span,
+.fecha {
     font-size: 13px;
     color: var(--color-text-soft);
 }
@@ -1836,11 +1835,6 @@ body.pagina-libro {
     margin: 0;
 }
 
-.datos-libro dt {
-    color: var(--color-text-soft);
-    font-size: 14px;
-}
-
 .datos-libro dd {
     margin: 0;
     font-weight: 500;
@@ -1890,12 +1884,6 @@ body.pagina-libro {
     margin-bottom: var(--space-4);
 }
 
-.relacionados-lista {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: var(--space-4);
-}
-
 /* Libro relacionado: portada chica y datos al lado */
 .libro-mini {
     display: flex;
@@ -1908,6 +1896,7 @@ body.pagina-libro {
 .libro-mini .portada-marco {
     flex: 0 0 62px;
     width: 62px;
+    border-radius: 4px;
 }
 
 .libro-mini .portada-inicial {
@@ -1918,11 +1907,6 @@ body.pagina-libro {
     display: block;
     font-size: 14px;
     line-height: 1.3;
-}
-
-.libro-mini span {
-    font-size: 13px;
-    color: var(--color-text-soft);
 }
 
 /* Cada reseña publicada */
@@ -1942,11 +1926,6 @@ body.pagina-libro {
     gap: 6px 12px;
 }
 
-.fecha {
-    color: var(--color-text-soft);
-    font-size: 13px;
-}
-
 /* ------------------------------------------------------------
    10. CAJA DEL MOSTRADOR
    Pantalla de punto de venta: zona de escaneo destacada, ticket
@@ -1961,11 +1940,6 @@ body.pagina-libro {
     gap: 10px 12px;
     margin: 0 0 var(--space-4);
     padding: var(--space-5);
-}
-
-.form-caja label {
-    margin: 0;
-    font-size: 15px;
 }
 
 .form-caja input[type="text"] {
@@ -2027,24 +2001,24 @@ body.pagina-libro {
     margin-bottom: var(--space-5);
 }
 
-.tabla-stock {
+.tabla {
     width: 100%;
     border-collapse: collapse;
     font-size: 15px;
 }
 
 /* Encabezado oscuro */
-.tabla-stock th {
+.tabla th {
     padding: 12px 14px;
     background-color: var(--color-dark);
-    color: #fff;
+    color: var(--color-white);
     font-size: 13px;
     font-weight: 600;
     text-align: left;
     white-space: nowrap;
 }
 
-.tabla-stock td {
+.tabla td {
     padding: 11px 14px;
     border-top: 1px solid var(--color-border);
     vertical-align: middle;
@@ -2052,42 +2026,35 @@ body.pagina-libro {
 }
 
 /* Fila resaltada al pasar el ratón */
-.tabla-stock tr:hover td {
+.tabla tr:hover td {
     background-color: var(--color-light);
 }
 
 /* Miniatura de la portada dentro de una tabla */
-.tabla-stock .portada-marco {
+.tabla .portada-marco {
     width: 44px;
 }
 
-.tabla-stock .portada-inicial {
+.tabla .portada-inicial {
     font-size: 14px;
 }
 
-.tabla-stock .portada-vacia {
+.tabla .portada-vacia {
     padding: 2px;
 }
 
-.tabla-stock a:not([class]) {
+.tabla a:not([class]) {
     font-weight: 600;
     text-decoration: none;
 }
 
-/* Botones de cada fila, uno al lado del otro */
-.acciones-linea {
-    display: flex;
-    align-items: center;
-    gap: var(--space-2);
-}
-
 /* Fila de un libro o usuario dado de baja: texto en gris */
-.tabla-stock .fila-inactiva td {
+.tabla .fila-inactiva td {
     color: rgba(15, 23, 42, 0.45);
 }
 
 /* Fila final con el total */
-.tabla-stock .fila-total td {
+.tabla .fila-total td {
     padding: 14px;
     background-color: var(--color-light);
     border-top: 2px solid var(--color-dark);
@@ -2096,7 +2063,7 @@ body.pagina-libro {
 }
 
 /* Fila recién modificada o agregada: se ilumina y se apaga */
-.tabla-stock .fila-actualizada td {
+.tabla .fila-actualizada td {
     animation: resaltar 2.2s var(--ease);
 }
 
@@ -2138,7 +2105,7 @@ main.acceso {
     min-height: 560px;
     padding: var(--space-7);
     background-color: var(--color-dark);
-    color: #fff;
+    color: var(--color-white);
     overflow: hidden;
 }
 
@@ -2300,7 +2267,7 @@ main {
 }
 
 /* La fila nueva del ticket entra desde la izquierda */
-.tabla-stock .fila-nueva {
+.tabla .fila-nueva {
     --desde-x: -16px;
     --desde-y: 0px;
     animation: aparecer var(--transition-slow) var(--ease);
@@ -2700,7 +2667,7 @@ main {
 
     /* Las tablas no se aprietan: mantienen un ancho cómodo y se
        desplazan de lado dentro de su bloque "tabla-scroll" */
-    .tabla-stock {
+    .tabla {
         min-width: 560px;
     }
 

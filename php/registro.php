@@ -22,31 +22,21 @@ $mensaje = "";
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     // Recoge los datos escritos en el formulario. Si algún campo no
     // llega (o no es un texto), se toma como vacío.
-    // trim() quita los espacios sobrantes al principio y al final.
-    $nombre = (isset($_POST["nombre"]) && is_string($_POST["nombre"])) ? trim($_POST["nombre"]) : "";
-    $correo = (isset($_POST["correo"]) && is_string($_POST["correo"])) ? trim($_POST["correo"]) : "";
-    $clave = (isset($_POST["clave"]) && is_string($_POST["clave"])) ? $_POST["clave"] : "";
+    $nombre = texto_de($_POST["nombre"] ?? null);
+    $correo = texto_de($_POST["correo"] ?? null);
+    $clave = texto_de($_POST["clave"] ?? null, false);
 
-    // VALIDACIÓN EN EL SERVIDOR: ningún dato puede quedar vacío.
-    // El "required" del formulario es solo una ayuda del navegador
-    // (se puede saltear enviando los datos de otra forma), así que
-    // la comprobación que vale es esta. Si falta algo, se muestra
-    // el error y no se consulta ni se guarda nada en la base.
+    // VALIDACIÓN EN EL SERVIDOR (las mismas reglas que "Mi perfil" y
+    // "Gestionar usuarios", en funciones.php). El "required" del
+    // formulario es solo una ayuda del navegador: la comprobación que
+    // vale es esta. Si algo falla, se muestra el primer error y no se
+    // guarda nada en la base.
     if ($nombre === "" || $correo === "" || trim($clave) === "") {
         $mensaje = "Completa el nombre, el correo y la contraseña.";
-    }
-
-    // Comprueba si ya existe un usuario con ese correo.
-    // Se usa una consulta preparada (el "?") para evitar ataques de inyección SQL.
-    if ($mensaje == "") {
-        $consulta = mysqli_prepare($conexion, "SELECT id FROM usuarios WHERE correo = ?");
-        mysqli_stmt_bind_param($consulta, "s", $correo);
-        mysqli_stmt_execute($consulta);
-        mysqli_stmt_store_result($consulta);
-
-        if (mysqli_stmt_num_rows($consulta) > 0) {
-            // El correo ya está en uso: se avisa y no se crea la cuenta.
-            $mensaje = "Ese correo ya está registrado.";
+    } else {
+        $errores = validar_nombre_correo($conexion, $nombre, $correo);
+        if (count($errores) > 0) {
+            $mensaje = $errores[0];
         }
     }
 
@@ -54,27 +44,26 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         // Cifra la contraseña antes de guardarla.
         $clave_segura = password_hash($clave, PASSWORD_DEFAULT);
 
-        // Guarda el nuevo usuario en la base de datos.
-        $insertar = mysqli_prepare($conexion, "INSERT INTO usuarios (nombre, correo, clave) VALUES (?, ?, ?)");
-        mysqli_stmt_bind_param($insertar, "sss", $nombre, $correo, $clave_segura);
-        mysqli_stmt_execute($insertar);
+        // Guarda el nuevo usuario. Si la base falla, no se muestran
+        // detalles internos.
+        try {
+            $insertar = mysqli_prepare($conexion, "INSERT INTO usuarios (nombre, correo, clave) VALUES (?, ?, ?)");
+            mysqli_stmt_bind_param($insertar, "sss", $nombre, $correo, $clave_segura);
+            mysqli_stmt_execute($insertar);
 
-        // Lleva al login con un aviso de que la cuenta se creó.
-        header("Location: login.php?registrado=1");
-        exit;
+            // Lleva al login con un aviso de que la cuenta se creó.
+            header("Location: login.php?registrado=1");
+            exit;
+        } catch (Throwable $e) {
+            $mensaje = "No se pudo crear la cuenta.";
+        }
     }
 }
 ?>
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Registro - Biblioteca Digital</title>
-    <link rel="stylesheet" href="../css/estilos.css?v=28">
-</head>
-<body>
-<?php include "navbar.php"; ?>
+<?php
+$titulo_pagina = "Registro";
+include "cabecera.php";
+?>
 
     <!-- Página en dos mitades, igual que la de inicio de sesión -->
     <main class="acceso">
@@ -117,9 +106,4 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         </section>
     </main>
 
-    <!-- Pie de página -->
-    <footer>
-        <p>Biblioteca Digital</p>
-    </footer>
-</body>
-</html>
+<?php include "pie.php"; ?>

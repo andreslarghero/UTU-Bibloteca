@@ -43,16 +43,14 @@ $lineas = null;
 
 if ($venta_id > 0) {
     // Datos generales de la venta elegida.
-    $consulta = mysqli_prepare($conexion,
+    $venta = buscar_fila($conexion,
         "SELECT ventas.id, ventas.fecha, ventas.total,
-                clientes.nombre AS cliente, vendedores.nombre AS vendedor
+         clientes.nombre AS cliente, vendedores.nombre AS vendedor
          FROM ventas
          LEFT JOIN usuarios AS clientes ON clientes.id = ventas.id_cliente
          LEFT JOIN usuarios AS vendedores ON vendedores.id = ventas.id_vendedor
-         WHERE ventas.id = ?");
-    mysqli_stmt_bind_param($consulta, "i", $venta_id);
-    mysqli_stmt_execute($consulta);
-    $venta = mysqli_fetch_assoc(mysqli_stmt_get_result($consulta));
+         WHERE ventas.id = ?",
+        "i", $venta_id);
 
     if ($venta) {
         // Libros vendidos en esa venta, con el precio al que se vendieron.
@@ -68,16 +66,10 @@ if ($venta_id > 0) {
     }
 }
 ?>
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Operaciones - Biblioteca Digital</title>
-    <link rel="stylesheet" href="../css/estilos.css?v=28">
-</head>
-<body>
-<?php include "navbar.php"; ?>
+<?php
+$titulo_pagina = "Operaciones";
+include "cabecera.php";
+?>
 
     <main>
         <h2>Consulta de operaciones</h2>
@@ -90,7 +82,7 @@ if ($venta_id > 0) {
         <!-- Tabla con todas las ventas -->
         <!-- "tabla-scroll": en un móvil la tabla se desplaza de lado dentro de este bloque, sin ensanchar la página -->
         <div class="tabla-scroll">
-        <table class="tabla-stock">
+        <table class="tabla">
             <tr>
                 <th>N.º de venta</th>
                 <th>Fecha</th>
@@ -107,7 +99,7 @@ if ($venta_id > 0) {
                 <!-- Si la venta no tiene cliente, fue una venta de mostrador -->
                 <td><?php echo $fila["cliente"] ? htmlspecialchars($fila["cliente"]) : "Mostrador"; ?></td>
                 <td><?php echo $fila["vendedor"] ? htmlspecialchars($fila["vendedor"]) : "Sin vendedor"; ?></td>
-                <td>$ <?php echo number_format($fila["total"], 2, ",", "."); ?></td>
+                <td>$ <?php echo formatearPrecio($fila["total"]); ?></td>
                 <td><a class="btn btn-primary btn-sm" href="operaciones.php?venta=<?php echo $fila["id"]; ?>#detalle">Ver detalle</a></td>
             </tr>
             <?php } ?>
@@ -133,7 +125,7 @@ if ($venta_id > 0) {
             <!-- Libros vendidos: el subtotal es cantidad x precio unitario -->
             <!-- "tabla-scroll": en un móvil la tabla se desplaza de lado dentro de este bloque, sin ensanchar la página -->
             <div class="tabla-scroll">
-            <table class="tabla-stock">
+            <table class="tabla">
                 <tr>
                     <th>Libro</th>
                     <th>Formato</th>
@@ -153,14 +145,14 @@ if ($venta_id > 0) {
                         <?php } ?>
                     </td>
                     <td><?php echo $linea["cantidad"]; ?></td>
-                    <td>$ <?php echo number_format($linea["precio"], 2, ",", "."); ?></td>
-                    <td>$ <?php echo number_format($linea["cantidad"] * $linea["precio"], 2, ",", "."); ?></td>
+                    <td>$ <?php echo formatearPrecio($linea["precio"]); ?></td>
+                    <td>$ <?php echo formatearPrecio($linea["cantidad"] * $linea["precio"]); ?></td>
                 </tr>
                 <?php } ?>
                 <!-- Fila final con el total de la venta -->
                 <tr class="fila-total">
                     <td colspan="4">TOTAL</td>
-                    <td>$ <?php echo number_format($venta["total"], 2, ",", "."); ?></td>
+                    <td>$ <?php echo formatearPrecio($venta["total"]); ?></td>
                 </tr>
             </table>
             </div>
@@ -170,13 +162,4 @@ if ($venta_id > 0) {
         <?php } ?>
     </main>
 
-    <!-- Pie de página -->
-    <footer>
-        <p>Biblioteca Digital</p>
-    </footer>
-</body>
-</html>
-<?php
-// Cierra la conexión con la base de datos al terminar la página.
-mysqli_close($conexion);
-?>
+<?php include "pie.php"; ?>

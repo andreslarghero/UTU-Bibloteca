@@ -22,4 +22,7 @@ if (!$conexion) {
 
 // Usa UTF-8 para que las tildes y la ñ se vean bien.
 mysqli_set_charset($conexion, "utf8");
+
+// Funciones compartidas (precios, validaciones, avisos...).
+require_once __DIR__ . "/funciones.php";
 ?>

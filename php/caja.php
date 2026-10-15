@@ -41,7 +41,7 @@ if (!isset($_SESSION["ticket"])) {
 // Se ejecuta al enviar cualquiera de los formularios de la página.
 // ------------------------------------------------------------
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    $accion = isset($_POST["accion"]) ? $_POST["accion"] : "";
+    $accion = texto_de($_POST["accion"] ?? null);
 
     // Aviso que se mostrará después de la acción y su tipo ("exito" o "error").
     $mensaje = "";
@@ -57,10 +57,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             // Busca el libro por su código de barras. Solo cuentan los libros activos
             // que se venden en formato físico: la caja no vende libros digitales.
             // Se usa una consulta preparada (el "?") para evitar ataques de inyección SQL.
-            $consulta = mysqli_prepare($conexion, "SELECT id, titulo, precio, stock FROM libros WHERE codigo_barras = ? AND activo = 1 AND formato_fisico = 1");
-            mysqli_stmt_bind_param($consulta, "s", $codigo);
-            mysqli_stmt_execute($consulta);
-            $libro = mysqli_fetch_assoc(mysqli_stmt_get_result($consulta));
+            $libro = buscar_fila($conexion,
+                "SELECT id, titulo, precio, stock FROM libros WHERE codigo_barras = ? AND activo = 1 AND formato_fisico = 1",
+                "s", $codigo);
 
             if (!$libro) {
                 $mensaje = "Libro no encontrado (código " . $codigo . ").";
@@ -250,7 +249,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             if ($error == "") {
                 // Venta guardada: se vacía el ticket y se avisa con el número y el total.
                 $_SESSION["ticket"] = [];
-                $mensaje = "Venta registrada correctamente. Venta N.º " . $venta_id . ". Total vendido: $ " . number_format($total, 2, ",", ".") . ".";
+                $mensaje = "Venta registrada correctamente. Venta N.º " . $venta_id . ". Total vendido: $ " . formatearPrecio($total) . ".";
                 $tipo = "exito";
             } else {
                 // El ticket se conserva para poder corregirlo.
@@ -261,8 +260,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
     // Guarda el aviso en la sesión y recarga la página. Así, si se
     // refresca el navegador, no se repite el último escaneo.
-    $_SESSION["caja_mensaje"] = $mensaje;
-    $_SESSION["caja_tipo"] = $tipo;
+    aviso_guardar("caja", $mensaje, $tipo);
     header("Location: caja.php");
     exit;
 }
@@ -271,9 +269,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 // AVISO DE LA ÚLTIMA ACCIÓN
 // Se lee de la sesión y se borra, para que se muestre una sola vez.
 // ------------------------------------------------------------
-$mensaje = isset($_SESSION["caja_mensaje"]) ? $_SESSION["caja_mensaje"] : "";
-$tipo = isset($_SESSION["caja_tipo"]) ? $_SESSION["caja_tipo"] : "error";
-unset($_SESSION["caja_mensaje"], $_SESSION["caja_tipo"]);
+list($mensaje, $tipo) = aviso_leer("caja");
 
 // ------------------------------------------------------------
 // TOTAL DEL TICKET
@@ -284,16 +280,10 @@ foreach ($_SESSION["ticket"] as $linea) {
     $total = $total + $linea["precio"] * $linea["cantidad"];
 }
 ?>
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Caja - Biblioteca Digital</title>
-    <link rel="stylesheet" href="../css/estilos.css?v=28">
-</head>
-<body>
-<?php include "navbar.php"; ?>
+<?php
+$titulo_pagina = "Caja";
+include "cabecera.php";
+?>
 
     <main>
         <h2>Caja del mostrador</h2>
@@ -329,7 +319,7 @@ foreach ($_SESSION["ticket"] as $linea) {
         <!-- Tabla del ticket: una fila por cada libro escaneado -->
         <!-- "tabla-scroll": en un móvil la tabla se desplaza de lado dentro de este bloque, sin ensanchar la página -->
         <div class="tabla-scroll">
-        <table class="tabla-stock">
+        <table class="tabla">
             <tr>
                 <th>Libro</th>
                 <th>Precio</th>
@@ -341,9 +331,9 @@ foreach ($_SESSION["ticket"] as $linea) {
             <?php foreach ($_SESSION["ticket"] as $linea) { ?>
             <tr data-fila="<?php echo (int) $linea["libro_id"]; ?>" data-cantidad="<?php echo (int) $linea["cantidad"]; ?>">
                 <td><?php echo htmlspecialchars($linea["titulo"]); ?></td>
-                <td>$ <?php echo number_format($linea["precio"], 2, ",", "."); ?></td>
+                <td>$ <?php echo formatearPrecio($linea["precio"]); ?></td>
                 <td><?php echo $linea["cantidad"]; ?></td>
-                <td>$ <?php echo number_format($linea["precio"] * $linea["cantidad"], 2, ",", "."); ?></td>
+                <td>$ <?php echo formatearPrecio($linea["precio"] * $linea["cantidad"]); ?></td>
                 <td>
                     <div class="acciones-linea">
                         <!-- Quita una sola unidad de esta línea -->
@@ -365,7 +355,7 @@ foreach ($_SESSION["ticket"] as $linea) {
             <!-- Fila final con el total del ticket -->
             <tr class="fila-total">
                 <td colspan="3">TOTAL</td>
-                <td colspan="2">$ <?php echo number_format($total, 2, ",", "."); ?></td>
+                <td colspan="2">$ <?php echo formatearPrecio($total); ?></td>
             </tr>
         </table>
         </div>
@@ -379,7 +369,7 @@ foreach ($_SESSION["ticket"] as $linea) {
             </form>
             <!-- Total del ticket, bien visible al lado del botón de finalizar.
                  data-total: el valor sin formato, para que main.js anime el número. -->
-            <p class="total-caja">Total a cobrar <strong data-total="<?php echo number_format($total, 2, ".", ""); ?>">$ <?php echo number_format($total, 2, ",", "."); ?></strong></p>
+            <p class="total-caja">Total a cobrar <strong data-total="<?php echo number_format($total, 2, ".", ""); ?>">$ <?php echo formatearPrecio($total); ?></strong></p>
             <!-- Guarda la venta en la base y descuenta el stock -->
             <form name="form_caja_finalizar" method="POST" action="caja.php">
                 <input type="hidden" name="accion" value="finalizar">
@@ -389,13 +379,4 @@ foreach ($_SESSION["ticket"] as $linea) {
         <?php } ?>
     </main>
 
-    <!-- Pie de página -->
-    <footer>
-        <p>Biblioteca Digital</p>
-    </footer>
-</body>
-</html>
-<?php
-// Cierra la conexión con la base de datos al terminar la página.
-mysqli_close($conexion);
-?>
+<?php include "pie.php"; ?>

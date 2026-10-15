@@ -24,27 +24,14 @@ if (!isset($_SESSION["id"])) {
 // Conecta con la base de datos.
 include "conexion.php";
 
-// Busca el estado ACTUAL del usuario de la sesión (consulta preparada).
-$consulta = mysqli_prepare($conexion, "SELECT nombre, rol, activo FROM usuarios WHERE id = ?");
-mysqli_stmt_bind_param($consulta, "i", $_SESSION["id"]);
-mysqli_stmt_execute($consulta);
-$usuario_sesion = mysqli_fetch_assoc(mysqli_stmt_get_result($consulta));
-
-// Si el usuario ya no existe o fue dado de baja, se cierra su sesión
-// por completo y se lo manda al login. El "exit" impide que se
-// ejecute cualquier acción de la página (por ejemplo, guardar una reseña).
-if (!$usuario_sesion || $usuario_sesion["activo"] != 1) {
-    $_SESSION = [];
-    session_destroy();
+// Comprueba en la base el estado ACTUAL del usuario (actualizar_sesion,
+// en funciones.php). Si el usuario ya no existe o fue dado de baja, la
+// función cierra su sesión por completo y se lo manda al login. El "exit"
+// impide que se ejecute cualquier acción de la página (por ejemplo,
+// guardar una reseña). Si sigue activo, el nombre y el rol de la sesión
+// quedan con los que tiene ahora en la base, no los que tenía al entrar.
+if (!actualizar_sesion($conexion)) {
     header("Location: login.php");
     exit;
 }
-
-// Se actualizan los datos de la sesión con los de la base, para que
-// las páginas vean el nombre y el rol que el usuario tiene ahora y
-// no los que tenía al entrar. $_SESSION["admin"] se sigue calculando
-// a partir del rol (bibliotecario = 1, cliente = 0).
-$_SESSION["nombre"] = $usuario_sesion["nombre"];
-$_SESSION["rol"] = $usuario_sesion["rol"];
-$_SESSION["admin"] = ($usuario_sesion["rol"] == "bibliotecario") ? 1 : 0;
 ?>

@@ -41,7 +41,7 @@ $usuario = ["id" => 0, "nombre" => "", "correo" => "", "rol" => "cliente"];
 // Se ejecuta al enviar cualquiera de los formularios de la página.
 // ------------------------------------------------------------
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    $accion = isset($_POST["accion"]) ? $_POST["accion"] : "";
+    $accion = texto_de($_POST["accion"] ?? null);
 
     // --- Dar de baja o reactivar ---
     // Es una baja lógica: nunca se usa DELETE, solo se cambia "activo".
@@ -51,10 +51,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $tipo = "error";
 
         // Busca al usuario para conocer su rol y su estado actual.
-        $consulta = mysqli_prepare($conexion, "SELECT id, rol, activo FROM usuarios WHERE id = ?");
-        mysqli_stmt_bind_param($consulta, "i", $id);
-        mysqli_stmt_execute($consulta);
-        $encontrado = mysqli_fetch_assoc(mysqli_stmt_get_result($consulta));
+        $encontrado = buscar_fila($conexion, "SELECT id, rol, activo FROM usuarios WHERE id = ?", "i", $id);
 
         if (!$encontrado) {
             $aviso = "El usuario no existe.";
@@ -75,8 +72,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $tipo = "exito";
         }
 
-        $_SESSION["usuarios_mensaje"] = $aviso;
-        $_SESSION["usuarios_tipo"] = $tipo;
+        aviso_guardar("usuarios", $aviso, $tipo);
         header("Location: usuarios_admin.php");
         exit;
     }
@@ -95,35 +91,14 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
         // ---------- Validaciones ----------
         if ($usuario["id"] > 0) {
-            $consulta = mysqli_prepare($conexion, "SELECT id, rol, activo FROM usuarios WHERE id = ?");
-            mysqli_stmt_bind_param($consulta, "i", $usuario["id"]);
-            mysqli_stmt_execute($consulta);
-            $actual = mysqli_fetch_assoc(mysqli_stmt_get_result($consulta));
+            $actual = buscar_fila($conexion, "SELECT id, rol, activo FROM usuarios WHERE id = ?", "i", $usuario["id"]);
 
             if (!$actual) {
                 $errores[] = "El usuario que quieres editar no existe.";
             }
         }
 
-        if ($usuario["nombre"] == "") {
-            $errores[] = "El nombre es obligatorio.";
-        } elseif (strlen($usuario["nombre"]) > 100) {
-            $errores[] = "El nombre es demasiado largo.";
-        }
-
-        if ($usuario["correo"] == "") {
-            $errores[] = "El correo es obligatorio.";
-        } elseif (strlen($usuario["correo"]) > 150 || !filter_var($usuario["correo"], FILTER_VALIDATE_EMAIL)) {
-            $errores[] = "El correo no es válido.";
-        } else {
-            // El correo no puede repetirse en otro usuario.
-            $consulta = mysqli_prepare($conexion, "SELECT id FROM usuarios WHERE correo = ? AND id <> ?");
-            mysqli_stmt_bind_param($consulta, "si", $usuario["correo"], $usuario["id"]);
-            mysqli_stmt_execute($consulta);
-            if (mysqli_fetch_assoc(mysqli_stmt_get_result($consulta))) {
-                $errores[] = "Ya existe otro usuario con ese correo.";
-            }
-        }
+        $errores = array_merge($errores, validar_nombre_correo($conexion, $usuario["nombre"], $usuario["correo"], $usuario["id"]));
 
         // La contraseña es obligatoria al crear. Al editar puede quedar
         // vacía, y entonces se conserva la que ya tenía.
@@ -176,13 +151,11 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 if ($usuario["id"] == $_SESSION["id"]) {
                     $_SESSION["nombre"] = $usuario["nombre"];
                     $_SESSION["rol"] = $usuario["rol"];
-                    $_SESSION["admin"] = ($usuario["rol"] == "bibliotecario") ? 1 : 0;
                 }
 
                 // Guarda el aviso en la sesión y recarga la página, para que
                 // al refrescar el navegador no se repita el guardado.
-                $_SESSION["usuarios_mensaje"] = $aviso;
-                $_SESSION["usuarios_tipo"] = "exito";
+                aviso_guardar("usuarios", $aviso);
                 header("Location: usuarios_admin.php");
                 exit;
             }
@@ -201,10 +174,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 if ($_SERVER["REQUEST_METHOD"] != "POST" && isset($_GET["editar"])) {
     $id = (int) $_GET["editar"];
 
-    $consulta = mysqli_prepare($conexion, "SELECT id, nombre, correo, rol FROM usuarios WHERE id = ?");
-    mysqli_stmt_bind_param($consulta, "i", $id);
-    mysqli_stmt_execute($consulta);
-    $encontrado = mysqli_fetch_assoc(mysqli_stmt_get_result($consulta));
+    $encontrado = buscar_fila($conexion, "SELECT id, nombre, correo, rol FROM usuarios WHERE id = ?", "i", $id);
 
     if ($encontrado) {
         $usuario = $encontrado;
@@ -217,9 +187,7 @@ if ($_SERVER["REQUEST_METHOD"] != "POST" && isset($_GET["editar"])) {
 // AVISO DE LA ÚLTIMA ACCIÓN
 // Se lee de la sesión y se borra, para que se muestre una sola vez.
 // ------------------------------------------------------------
-$mensaje = isset($_SESSION["usuarios_mensaje"]) ? $_SESSION["usuarios_mensaje"] : "";
-$tipo = isset($_SESSION["usuarios_tipo"]) ? $_SESSION["usuarios_tipo"] : "exito";
-unset($_SESSION["usuarios_mensaje"], $_SESSION["usuarios_tipo"]);
+list($mensaje, $tipo) = aviso_leer("usuarios");
 
 // ------------------------------------------------------------
 // LISTADO
@@ -227,16 +195,10 @@ unset($_SESSION["usuarios_mensaje"], $_SESSION["usuarios_tipo"]);
 // ------------------------------------------------------------
 $lista = mysqli_query($conexion, "SELECT id, nombre, correo, rol, activo FROM usuarios ORDER BY id");
 ?>
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gestión de usuarios - Biblioteca Digital</title>
-    <link rel="stylesheet" href="../css/estilos.css?v=28">
-</head>
-<body>
-<?php include "navbar.php"; ?>
+<?php
+$titulo_pagina = "Gestión de usuarios";
+include "cabecera.php";
+?>
 
     <main>
         <h2>Gestión de usuarios</h2>
@@ -294,7 +256,7 @@ $lista = mysqli_query($conexion, "SELECT id, nombre, correo, rol, activo FROM us
         <!-- Tabla con todos los usuarios, también los dados de baja -->
         <!-- "tabla-scroll": en un móvil la tabla se desplaza de lado dentro de este bloque, sin ensanchar la página -->
         <div class="tabla-scroll">
-        <table class="tabla-stock">
+        <table class="tabla">
             <tr>
                 <th>ID</th>
                 <th>Nombre</th>
@@ -354,13 +316,4 @@ $lista = mysqli_query($conexion, "SELECT id, nombre, correo, rol, activo FROM us
         </div>
     </main>
 
-    <!-- Pie de página -->
-    <footer>
-        <p>Biblioteca Digital</p>
-    </footer>
-</body>
-</html>
-<?php
-// Cierra la conexión con la base de datos al terminar la página.
-mysqli_close($conexion);
-?>
+<?php include "pie.php"; ?>

@@ -32,10 +32,7 @@ $id_cliente = $_SESSION["id"];
 // (un libro que no existe).
 // ------------------------------------------------------------
 $origen = ($_SERVER["REQUEST_METHOD"] == "POST") ? $_POST : $_GET;
-$libro_id = 0;
-if (isset($origen["libro"]) && is_string($origen["libro"]) && ctype_digit($origen["libro"])) {
-    $libro_id = (int) $origen["libro"];
-}
+$libro_id = entero_de($origen["libro"] ?? null);
 
 // ------------------------------------------------------------
 // CONFIRMAR LA COMPRA
@@ -54,11 +51,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         //    fila hasta terminar la transacción: si el mismo usuario envía
         //    la compra dos veces a la vez, la segunda espera a la primera
         //    y entonces ya encuentra el libro comprado.
-        $consulta = mysqli_prepare($conexion,
-            "SELECT titulo, precio_digital, archivo_digital, activo, formato_digital FROM libros WHERE id = ? FOR UPDATE");
-        mysqli_stmt_bind_param($consulta, "i", $libro_id);
-        mysqli_stmt_execute($consulta);
-        $libro = mysqli_fetch_assoc(mysqli_stmt_get_result($consulta));
+        $libro = buscar_fila($conexion,
+            "SELECT titulo, precio_digital, archivo_digital, activo, formato_digital FROM libros WHERE id = ? FOR UPDATE",
+            "i", $libro_id);
 
         // 2. El libro tiene que existir, estar activo, venderse en formato
         //    digital y tener precio digital y archivo.
@@ -68,14 +63,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         } else {
             // 3. ¿Este usuario ya compró este libro en digital? Si es así,
             //    no se crea otra venta ni se cobra de nuevo.
-            $consulta = mysqli_prepare($conexion,
-                "SELECT COUNT(*) AS total FROM venta_lineas
-                 JOIN ventas ON ventas.id = venta_lineas.venta_id
-                 WHERE ventas.id_cliente = ? AND venta_lineas.libro_id = ? AND venta_lineas.formato = 'digital'");
-            mysqli_stmt_bind_param($consulta, "ii", $id_cliente, $libro_id);
-            mysqli_stmt_execute($consulta);
-
-            if (mysqli_fetch_assoc(mysqli_stmt_get_result($consulta))["total"] > 0) {
+            if (cliente_compro_digital($conexion, $id_cliente, $libro_id)) {
                 $mensaje = "Ya tienes este libro digital en Mis compras.";
                 $tipo = "exito";
             } else {
@@ -101,7 +89,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                     if (!mysqli_stmt_execute($insertar_linea)) {
                         $mensaje = "No se pudo registrar la compra.";
                     } else {
-                        $mensaje = "Compra registrada. Venta N.º " . $venta_id . ". Total: $ " . number_format($precio, 2, ",", ".") . ".";
+                        $mensaje = "Compra registrada. Venta N.º " . $venta_id . ". Total: $ " . formatearPrecio($precio) . ".";
                         $tipo = "exito";
                     }
                 }
@@ -128,8 +116,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
     // Guarda el aviso en la sesión y recarga la página. Así, si se
     // refresca el navegador, no se vuelve a enviar la compra.
-    $_SESSION["compra_mensaje"] = $mensaje;
-    $_SESSION["compra_tipo"] = $tipo;
+    aviso_guardar("compra", $mensaje, $tipo);
     header("Location: comprar_digital.php?libro=" . $libro_id);
     exit;
 }
@@ -138,9 +125,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 // AVISO DE LA ÚLTIMA ACCIÓN
 // Se lee de la sesión y se borra, para que se muestre una sola vez.
 // ------------------------------------------------------------
-$mensaje = isset($_SESSION["compra_mensaje"]) ? $_SESSION["compra_mensaje"] : "";
-$tipo = (isset($_SESSION["compra_tipo"]) && $_SESSION["compra_tipo"] == "exito") ? "exito" : "error";
-unset($_SESSION["compra_mensaje"], $_SESSION["compra_tipo"]);
+list($mensaje, $tipo) = aviso_leer("compra");
 
 // ------------------------------------------------------------
 // DATOS PARA LA PANTALLA
@@ -148,36 +133,22 @@ unset($_SESSION["compra_mensaje"], $_SESSION["compra_tipo"]);
 // comprueba si este usuario ya lo compró en formato digital.
 // No se pide el nombre del archivo: esta página no lo necesita.
 // ------------------------------------------------------------
-$consulta = mysqli_prepare($conexion,
+$libro = buscar_fila($conexion,
     "SELECT id, titulo, autor, precio_digital FROM libros
      WHERE id = ? AND activo = 1 AND formato_digital = 1
-       AND precio_digital IS NOT NULL AND archivo_digital IS NOT NULL");
-mysqli_stmt_bind_param($consulta, "i", $libro_id);
-mysqli_stmt_execute($consulta);
-$libro = mysqli_fetch_assoc(mysqli_stmt_get_result($consulta));
+     AND precio_digital IS NOT NULL AND archivo_digital IS NOT NULL",
+    "i", $libro_id);
 
 $ya_comprado = false;
 
 if ($libro) {
-    $consulta = mysqli_prepare($conexion,
-        "SELECT COUNT(*) AS total FROM venta_lineas
-         JOIN ventas ON ventas.id = venta_lineas.venta_id
-         WHERE ventas.id_cliente = ? AND venta_lineas.libro_id = ? AND venta_lineas.formato = 'digital'");
-    mysqli_stmt_bind_param($consulta, "ii", $id_cliente, $libro_id);
-    mysqli_stmt_execute($consulta);
-    $ya_comprado = (mysqli_fetch_assoc(mysqli_stmt_get_result($consulta))["total"] > 0);
+    $ya_comprado = cliente_compro_digital($conexion, $id_cliente, $libro_id);
 }
 ?>
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Comprar libro digital - Biblioteca Digital</title>
-    <link rel="stylesheet" href="../css/estilos.css?v=28">
-</head>
-<body>
-<?php include "navbar.php"; ?>
+<?php
+$titulo_pagina = "Comprar libro digital";
+include "cabecera.php";
+?>
 
     <main>
         <!-- Enlace para volver al catálogo -->
@@ -213,7 +184,7 @@ if ($libro) {
                     <?php echo htmlspecialchars($libro["autor"]); ?>
                 </p>
                 <p><strong>Formato:</strong> Digital</p>
-                <p><strong>Precio:</strong> $ <?php echo number_format($libro["precio_digital"], 2, ",", "."); ?></p>
+                <p><strong>Precio:</strong> $ <?php echo formatearPrecio($libro["precio_digital"]); ?></p>
                 <p>Es una compra simulada: no se pide ningún medio de pago.</p>
                 <!-- data-enviando: texto que muestra el botón mientras se envía (lo usa main.js) -->
                 <button class="btn btn-primary btn-lg" type="submit" data-enviando="Registrando la compra...">Confirmar compra</button>
@@ -222,13 +193,4 @@ if ($libro) {
         <?php } ?>
     </main>
 
-    <!-- Pie de página -->
-    <footer>
-        <p>Biblioteca Digital</p>
-    </footer>
-</body>
-</html>
-<?php
-// Cierra la conexión con la base de datos al terminar la página.
-mysqli_close($conexion);
-?>
+<?php include "pie.php"; ?>

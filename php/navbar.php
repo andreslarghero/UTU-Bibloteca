@@ -71,7 +71,7 @@ if ($nav_sesion) {
     </script>
     <!-- JavaScript de todo el sitio (un solo archivo). "defer" hace que se
          ejecute cuando la página ya terminó de leerse. -->
-    <script src="<?php echo isset($nav_desde_raiz) ? "js/main.js" : "../js/main.js"; ?>?v=7" defer></script>
+    <script src="<?php echo isset($nav_desde_raiz) ? "js/main.js" : "../js/main.js"; ?>?v=<?php echo JS_VERSION; ?>" defer></script>
 
     <!-- Cabecera del sitio (igual en todas las páginas): una sola barra con
          el menú a la izquierda y el saludo a la derecha. No lleva logo ni

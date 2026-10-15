@@ -45,10 +45,7 @@ $compras = mysqli_stmt_get_result($consulta);
 // alguien escriba a mano el número de una venta ajena, no la ve.
 // Solo se acepta un valor formado por dígitos.
 // ------------------------------------------------------------
-$venta_id = 0;
-if (isset($_GET["venta"]) && is_string($_GET["venta"]) && ctype_digit($_GET["venta"])) {
-    $venta_id = (int) $_GET["venta"];
-}
+$venta_id = entero_de($_GET["venta"] ?? null);
 
 // Indica si en la dirección se pidió alguna venta (aunque el valor no sea válido).
 $pidio_detalle = isset($_GET["venta"]);
@@ -57,14 +54,12 @@ $lineas = null;
 
 if ($venta_id > 0) {
     // Datos generales de la compra elegida (solo si es de este cliente).
-    $consulta = mysqli_prepare($conexion,
+    $venta = buscar_fila($conexion,
         "SELECT ventas.id, ventas.fecha, ventas.total, vendedores.nombre AS vendedor
          FROM ventas
          LEFT JOIN usuarios AS vendedores ON vendedores.id = ventas.id_vendedor
-         WHERE ventas.id = ? AND ventas.id_cliente = ?");
-    mysqli_stmt_bind_param($consulta, "ii", $venta_id, $id_cliente);
-    mysqli_stmt_execute($consulta);
-    $venta = mysqli_fetch_assoc(mysqli_stmt_get_result($consulta));
+         WHERE ventas.id = ? AND ventas.id_cliente = ?",
+        "ii", $venta_id, $id_cliente);
 
     if ($venta) {
         // Libros de esa compra, con el precio al que se vendieron (el de
@@ -85,16 +80,10 @@ if ($venta_id > 0) {
     }
 }
 ?>
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mis compras - Biblioteca Digital</title>
-    <link rel="stylesheet" href="../css/estilos.css?v=28">
-</head>
-<body>
-<?php include "navbar.php"; ?>
+<?php
+$titulo_pagina = "Mis compras";
+include "cabecera.php";
+?>
 
     <main>
         <h2>Mis compras</h2>
@@ -107,7 +96,7 @@ if ($venta_id > 0) {
         <!-- Tabla con las compras del usuario. El contenedor "tabla-scroll" hace
              que en un móvil la tabla se desplace de lado sin ensanchar la página. -->
         <div class="tabla-scroll">
-        <table class="tabla-stock">
+        <table class="tabla">
             <tr>
                 <th>N.º de venta</th>
                 <th>Fecha</th>
@@ -121,7 +110,7 @@ if ($venta_id > 0) {
                 <td><?php echo $fila["id"]; ?></td>
                 <td><?php echo date("d/m/Y H:i", strtotime($fila["fecha"])); ?></td>
                 <td><?php echo $fila["vendedor"] ? htmlspecialchars($fila["vendedor"]) : "Sin vendedor"; ?></td>
-                <td class="sin-corte">$ <?php echo number_format($fila["total"], 2, ",", "."); ?></td>
+                <td class="sin-corte">$ <?php echo formatearPrecio($fila["total"]); ?></td>
                 <td><a class="btn btn-primary btn-sm" href="mis_compras.php?venta=<?php echo $fila["id"]; ?>#detalle">Ver detalle</a></td>
             </tr>
             <?php } ?>
@@ -146,7 +135,7 @@ if ($venta_id > 0) {
 
             <!-- Libros comprados: el subtotal es cantidad x precio unitario -->
             <div class="tabla-scroll">
-            <table class="tabla-stock">
+            <table class="tabla">
                 <tr>
                     <th>Libro</th>
                     <th>Formato</th>
@@ -167,8 +156,8 @@ if ($venta_id > 0) {
                         <?php } ?>
                     </td>
                     <td><?php echo $linea["cantidad"]; ?></td>
-                    <td class="sin-corte">$ <?php echo number_format($linea["precio"], 2, ",", "."); ?></td>
-                    <td class="sin-corte">$ <?php echo number_format($linea["cantidad"] * $linea["precio"], 2, ",", "."); ?></td>
+                    <td class="sin-corte">$ <?php echo formatearPrecio($linea["precio"]); ?></td>
+                    <td class="sin-corte">$ <?php echo formatearPrecio($linea["cantidad"] * $linea["precio"]); ?></td>
                     <td>
                         <!-- Solo las líneas digitales se pueden descargar (las físicas no
                              muestran nada). El enlace lleva únicamente el id del libro:
@@ -188,7 +177,7 @@ if ($venta_id > 0) {
                 <!-- Fila final con el total de la compra -->
                 <tr class="fila-total">
                     <td colspan="4">TOTAL</td>
-                    <td class="sin-corte" colspan="2">$ <?php echo number_format($venta["total"], 2, ",", "."); ?></td>
+                    <td class="sin-corte" colspan="2">$ <?php echo formatearPrecio($venta["total"]); ?></td>
                 </tr>
             </table>
             </div>
@@ -198,13 +187,4 @@ if ($venta_id > 0) {
         <?php } ?>
     </main>
 
-    <!-- Pie de página -->
-    <footer>
-        <p>Biblioteca Digital</p>
-    </footer>
-</body>
-</html>
-<?php
-// Cierra la conexión con la base de datos al terminar la página.
-mysqli_close($conexion);
-?>
+<?php include "pie.php"; ?>

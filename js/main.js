@@ -66,6 +66,11 @@
             return null;
         }
     }
+    function olvidar(clave) {
+        try {
+            sessionStorage.removeItem(clave);
+        } catch (error) { /* sin almacenamiento: no pasa nada */ }
+    }
 
     // Avisa una sola vez cuando un elemento entra en la pantalla.
     // Todo el sitio comparte UN solo observador: cada elemento
@@ -953,7 +958,7 @@
     // usuario) y hace entrar las filas de a una.
     // ------------------------------------------------------------
     function initTables() {
-        var tablas = todos(".tabla-stock");
+        var tablas = todos(".tabla");
         if (!tablas.length) {
             return;
         }
@@ -972,7 +977,7 @@
 
         // --- Resaltarla al volver, si PHP avisó que salió bien ---
         var recordada = leer("fila-modificada");
-        try { sessionStorage.removeItem("fila-modificada"); } catch (error) { /* nada */ }
+        olvidar("fila-modificada");
         if (recordada && recordada.pagina === location.pathname && uno("main > p.exito")) {
             var modificada = uno('tr[data-fila="' + String(recordada.id).replace(/"/g, "") + '"]');
             if (modificada && !modificada.classList.contains("fila-nueva")) {

@@ -59,7 +59,7 @@ $tamano_maximo = 20 * 1024 * 1024;   // 20 MB
 // Se ejecuta al enviar cualquiera de los formularios de la página.
 // ------------------------------------------------------------
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    $accion = isset($_POST["accion"]) ? $_POST["accion"] : "";
+    $accion = texto_de($_POST["accion"] ?? null);
 
     // Si el archivo enviado supera el límite del servidor, PHP descarta
     // todo el formulario y no llega ningún dato: se avisa del motivo.
@@ -77,7 +77,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         mysqli_stmt_bind_param($consulta, "ii", $activo, $id);
         mysqli_stmt_execute($consulta);
 
-        $_SESSION["libros_mensaje"] = ($activo == 1) ? "Libro reactivado." : "Libro dado de baja.";
+        aviso_guardar("libros", ($activo == 1) ? "Libro reactivado." : "Libro dado de baja.");
         header("Location: libros_admin.php");
         exit;
     }
@@ -109,10 +109,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         // ---------- Validaciones ----------
         // Si es una edición, el libro tiene que existir.
         if ($libro["id"] > 0) {
-            $consulta = mysqli_prepare($conexion, "SELECT id, archivo_digital FROM libros WHERE id = ?");
-            mysqli_stmt_bind_param($consulta, "i", $libro["id"]);
-            mysqli_stmt_execute($consulta);
-            $existente = mysqli_fetch_assoc(mysqli_stmt_get_result($consulta));
+            $existente = buscar_fila($conexion,
+                "SELECT id, archivo_digital FROM libros WHERE id = ?",
+                "i", $libro["id"]);
             if ($existente) {
                 $archivo_actual = $existente["archivo_digital"];
                 $tiene_archivo = ($archivo_actual != "");
@@ -189,10 +188,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         if (strlen($libro["isbn"]) > 20) {
             $errores[] = "El ISBN es demasiado largo.";
         } elseif ($libro["isbn"] != "") {
-            $consulta = mysqli_prepare($conexion, "SELECT id FROM libros WHERE isbn = ? AND id <> ?");
-            mysqli_stmt_bind_param($consulta, "si", $libro["isbn"], $libro["id"]);
-            mysqli_stmt_execute($consulta);
-            if (mysqli_fetch_assoc(mysqli_stmt_get_result($consulta))) {
+            if (buscar_fila($conexion,
+                "SELECT id FROM libros WHERE isbn = ? AND id <> ?",
+                "si", $libro["isbn"], $libro["id"])) {
                 $errores[] = "Ya existe otro libro con ese ISBN.";
             }
         }
@@ -207,10 +205,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         } elseif (strlen($libro["codigo_barras"]) > 20) {
             $errores[] = "El código de barras es demasiado largo.";
         } else {
-            $consulta = mysqli_prepare($conexion, "SELECT id FROM libros WHERE codigo_barras = ? AND id <> ?");
-            mysqli_stmt_bind_param($consulta, "si", $libro["codigo_barras"], $libro["id"]);
-            mysqli_stmt_execute($consulta);
-            if (mysqli_fetch_assoc(mysqli_stmt_get_result($consulta))) {
+            if (buscar_fila($conexion,
+                "SELECT id FROM libros WHERE codigo_barras = ? AND id <> ?",
+                "si", $libro["codigo_barras"], $libro["id"])) {
                 $errores[] = "Ya existe otro libro con ese código de barras.";
             }
         }
@@ -340,7 +337,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             if ($guardado) {
                 // Guarda el aviso en la sesión y recarga la página, para que
                 // al refrescar el navegador no se repita el guardado.
-                $_SESSION["libros_mensaje"] = $mensaje;
+                aviso_guardar("libros", $mensaje);
                 header("Location: libros_admin.php");
                 exit;
             }
@@ -358,10 +355,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 if ($_SERVER["REQUEST_METHOD"] != "POST" && isset($_GET["editar"])) {
     $id = (int) $_GET["editar"];
 
-    $consulta = mysqli_prepare($conexion, "SELECT * FROM libros WHERE id = ?");
-    mysqli_stmt_bind_param($consulta, "i", $id);
-    mysqli_stmt_execute($consulta);
-    $encontrado = mysqli_fetch_assoc(mysqli_stmt_get_result($consulta));
+    $encontrado = buscar_fila($conexion, "SELECT * FROM libros WHERE id = ?", "i", $id);
 
     if ($encontrado) {
         $libro = $encontrado;
@@ -375,8 +369,7 @@ if ($_SERVER["REQUEST_METHOD"] != "POST" && isset($_GET["editar"])) {
 // AVISO DE LA ÚLTIMA ACCIÓN
 // Se lee de la sesión y se borra, para que se muestre una sola vez.
 // ------------------------------------------------------------
-$mensaje = isset($_SESSION["libros_mensaje"]) ? $_SESSION["libros_mensaje"] : "";
-unset($_SESSION["libros_mensaje"]);
+list($mensaje) = aviso_leer("libros");
 
 // ------------------------------------------------------------
 // LISTADO
@@ -390,16 +383,10 @@ $lista = mysqli_query($conexion,
      JOIN categorias ON categorias.id = libros.categoria_id
      ORDER BY libros.titulo");
 ?>
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gestión de libros - Biblioteca Digital</title>
-    <link rel="stylesheet" href="../css/estilos.css?v=28">
-</head>
-<body>
-<?php include "navbar.php"; ?>
+<?php
+$titulo_pagina = "Gestión de libros";
+include "cabecera.php";
+?>
 
     <main>
         <h2>Gestión de libros</h2>
@@ -515,7 +502,7 @@ $lista = mysqli_query($conexion,
         <!-- Tabla con todos los libros, también los dados de baja -->
         <!-- "tabla-scroll": en un móvil la tabla se desplaza de lado dentro de este bloque, sin ensanchar la página -->
         <div class="tabla-scroll">
-        <table class="tabla-stock">
+        <table class="tabla">
             <tr>
                 <th>Título</th>
                 <th>Autor</th>
@@ -537,9 +524,9 @@ $lista = mysqli_query($conexion,
                 <td><?php echo $fila["isbn"] ? htmlspecialchars($fila["isbn"]) : "Sin ISBN"; ?></td>
                 <!-- Precio y stock del formato físico, y precio del digital.
                      Un guion indica que el libro no se vende en ese formato. -->
-                <td class="sin-corte"><?php echo ($fila["formato_fisico"] == 1) ? "$ " . number_format($fila["precio"], 2, ",", ".") : "—"; ?></td>
+                <td class="sin-corte"><?php echo ($fila["formato_fisico"] == 1) ? "$ " . formatearPrecio($fila["precio"]) : "—"; ?></td>
                 <td><?php echo ($fila["formato_fisico"] == 1) ? $fila["stock"] : "—"; ?></td>
-                <td class="sin-corte"><?php echo ($fila["formato_digital"] == 1) ? "$ " . number_format($fila["precio_digital"], 2, ",", ".") : "—"; ?></td>
+                <td class="sin-corte"><?php echo ($fila["formato_digital"] == 1) ? "$ " . formatearPrecio($fila["precio_digital"]) : "—"; ?></td>
                 <td>
                     <!-- Etiqueta verde si está activo, roja si está dado de baja -->
                     <?php if ($fila["activo"] == 1) { ?>
@@ -571,13 +558,4 @@ $lista = mysqli_query($conexion,
         </div>
     </main>
 
-    <!-- Pie de página -->
-    <footer>
-        <p>Biblioteca Digital</p>
-    </footer>
-</body>
-</html>
-<?php
-// Cierra la conexión con la base de datos al terminar la página.
-mysqli_close($conexion);
-?>
+<?php include "pie.php"; ?>

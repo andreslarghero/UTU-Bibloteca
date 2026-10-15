@@ -33,14 +33,11 @@ while ($fila = mysqli_fetch_assoc($lista_categorias)) {
 // ------------------------------------------------------------
 
 // Texto de búsqueda (vacío = sin búsqueda).
-$buscar = (isset($_GET["buscar"]) && is_string($_GET["buscar"])) ? trim($_GET["buscar"]) : "";
+$buscar = texto_de($_GET["buscar"] ?? null);
 
 // Categoría elegida (0 = todas). Solo se acepta un número que sea el id
 // de una categoría que existe; cualquier otra cosa se trata como "todas".
-$categoria = 0;
-if (isset($_GET["categoria"]) && is_string($_GET["categoria"]) && ctype_digit($_GET["categoria"])) {
-    $categoria = (int) $_GET["categoria"];
-}
+$categoria = entero_de($_GET["categoria"] ?? null);
 if (!isset($categorias[$categoria])) {
     $categoria = 0;
 }
@@ -122,16 +119,10 @@ if ($buscar == "" && $categoria == 0 && count($libros) >= 3) {
 // Función que dibuja la portada (imagen o reemplazo propio).
 include "portada.php";
 ?>
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Catálogo - Biblioteca Digital</title>
-    <link rel="stylesheet" href="../css/estilos.css?v=28">
-</head>
-<body>
-<?php include "navbar.php"; ?>
+<?php
+$titulo_pagina = "Catálogo";
+include "cabecera.php";
+?>
 
     <!-- "ancho-catalogo": esta página usa un poco más de ancho que el resto
          del sitio, para que entren 5 libros por fila. -->
@@ -192,10 +183,10 @@ include "portada.php";
                         <p class="formato">
                             <?php if ($fila["formato_fisico"] == 1) { ?>
                                 <span class="badge badge-fisico">Físico</span>
-                                <span class="precio">$ <?php echo number_format($fila["precio"], 2, ",", "."); ?></span>
+                                <span class="precio">$ <?php echo formatearPrecio($fila["precio"]); ?></span>
                             <?php } else { ?>
                                 <span class="badge badge-digital">Digital</span>
-                                <span class="precio">$ <?php echo number_format($fila["precio_digital"], 2, ",", "."); ?></span>
+                                <span class="precio">$ <?php echo formatearPrecio($fila["precio_digital"]); ?></span>
                             <?php } ?>
                         </p>
                         <a class="btn btn-primary btn-sm" href="libro.php?id=<?php echo $fila["id"]; ?>">Ver libro</a>
@@ -237,7 +228,7 @@ include "portada.php";
                         <?php if ($fila["formato_fisico"] == 1) { ?>
                             <p class="formato">
                                 <span class="badge badge-fisico">Físico</span>
-                                <span class="precio">$ <?php echo number_format($fila["precio"], 2, ",", "."); ?></span>
+                                <span class="precio">$ <?php echo formatearPrecio($fila["precio"]); ?></span>
                                 <?php if ($fila["stock"] > 0) { ?>
                                     <span class="disponible"><?php echo $fila["stock"]; ?> <?php echo ($fila["stock"] == 1) ? "disponible" : "disponibles"; ?></span>
                                 <?php } else { ?>
@@ -249,7 +240,7 @@ include "portada.php";
                         <?php if ($fila["formato_digital"] == 1) { ?>
                             <p class="formato">
                                 <span class="badge badge-digital">Digital</span>
-                                <span class="precio">$ <?php echo number_format($fila["precio_digital"], 2, ",", "."); ?></span>
+                                <span class="precio">$ <?php echo formatearPrecio($fila["precio_digital"]); ?></span>
                             </p>
                         <?php } ?>
                     </div>
@@ -261,13 +252,4 @@ include "portada.php";
         </div>
     </main>
 
-    <!-- Pie de página -->
-    <footer>
-        <p>Biblioteca Digital</p>
-    </footer>
-</body>
-</html>
-<?php
-// Cierra la conexión con la base de datos al terminar la página.
-mysqli_close($conexion);
-?>
+<?php include "pie.php"; ?>

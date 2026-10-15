@@ -24,10 +24,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $clave = $_POST["clave"];
 
     // Busca al usuario por su correo (con consulta preparada por seguridad).
-    $consulta = mysqli_prepare($conexion, "SELECT id, nombre, clave, rol, activo FROM usuarios WHERE correo = ?");
-    mysqli_stmt_bind_param($consulta, "s", $correo);
-    mysqli_stmt_execute($consulta);
-    $usuario = mysqli_fetch_assoc(mysqli_stmt_get_result($consulta));
+    $usuario = buscar_fila($conexion,
+        "SELECT id, nombre, clave, rol, activo FROM usuarios WHERE correo = ?",
+        "s", $correo);
 
     // Comprueba que el usuario exista, que esté activo y que la contraseña
     // coincida con la cifrada. A un usuario dado de baja (activo = 0) se le
@@ -38,14 +37,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $_SESSION["nombre"] = $usuario["nombre"];
         $_SESSION["rol"] = $usuario["rol"];       // "cliente" o "bibliotecario"
 
-        // Temporal: las demás páginas todavía comprueban $_SESSION["admin"],
-        // así que se calcula a partir del rol (bibliotecario = 1, cliente = 0).
-        if ($usuario["rol"] == "bibliotecario") {
-            $_SESSION["admin"] = 1;
-        } else {
-            $_SESSION["admin"] = 0;
-        }
-
         header("Location: libros.php");
         exit;
     } else {
@@ -54,16 +45,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     }
 }
 ?>
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Iniciar sesión - Biblioteca Digital</title>
-    <link rel="stylesheet" href="../css/estilos.css?v=28">
-</head>
-<body>
-<?php include "navbar.php"; ?>
+<?php
+$titulo_pagina = "Iniciar sesión";
+include "cabecera.php";
+?>
 
     <!-- Página en dos mitades: a la izquierda el bloque visual y a la
          derecha el formulario. En el móvil solo se ve el formulario. -->
@@ -105,9 +90,4 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         </section>
     </main>
 
-    <!-- Pie de página -->
-    <footer>
-        <p>Biblioteca Digital</p>
-    </footer>
-</body>
-</html>
+<?php include "pie.php"; ?>

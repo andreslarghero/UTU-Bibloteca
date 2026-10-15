@@ -42,16 +42,10 @@ $resultado = mysqli_query($conexion, "SELECT id, titulo, autor, portada, stock F
 // Función que dibuja la portada (imagen o reemplazo propio).
 include "portada.php";
 ?>
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gestión de stock - Biblioteca Digital</title>
-    <link rel="stylesheet" href="../css/estilos.css?v=28">
-</head>
-<body>
-<?php include "navbar.php"; ?>
+<?php
+$titulo_pagina = "Gestión de stock";
+include "cabecera.php";
+?>
 
     <main>
         <h2>Gestión de stock</h2>
@@ -65,7 +59,7 @@ include "portada.php";
         <!-- Tabla con todos los libros y su stock -->
         <!-- "tabla-scroll": en un móvil la tabla se desplaza de lado dentro de este bloque, sin ensanchar la página -->
         <div class="tabla-scroll">
-        <table class="tabla-stock">
+        <table class="tabla">
             <tr>
                 <th>Portada</th>
                 <th>Libro</th>
@@ -110,13 +104,4 @@ include "portada.php";
         </div>
     </main>
 
-    <!-- Pie de página -->
-    <footer>
-        <p>Biblioteca Digital</p>
-    </footer>
-</body>
-</html>
-<?php
-// Cierra la conexión con la base de datos al terminar la página.
-mysqli_close($conexion);
-?>
+<?php include "pie.php"; ?>

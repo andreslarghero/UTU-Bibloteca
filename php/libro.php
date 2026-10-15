@@ -26,13 +26,11 @@ include "verificar_usuario.php";
 // ------------------------------------------------------------
 $id = isset($_GET["id"]) ? (int) $_GET["id"] : 0;
 
-$consulta = mysqli_prepare($conexion,
+$libro = buscar_fila($conexion,
     "SELECT libros.*, categorias.nombre AS categoria FROM libros
      JOIN categorias ON categorias.id = libros.categoria_id
-     WHERE libros.id = ? AND libros.activo = 1");
-mysqli_stmt_bind_param($consulta, "i", $id);
-mysqli_stmt_execute($consulta);
-$libro = mysqli_fetch_assoc(mysqli_stmt_get_result($consulta));
+     WHERE libros.id = ? AND libros.activo = 1",
+    "i", $id);
 
 // ------------------------------------------------------------
 // GUARDAR O ELIMINAR UNA RESEÑA
@@ -55,7 +53,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && $libro) {
     if ($_POST["accion"] == "eliminar") {
         $resena_id = (int) $_POST["resena_id"];
 
-        if (!empty($_SESSION["admin"])) {
+        if ($_SESSION["rol"] == "bibliotecario") {
             // El administrador puede borrar cualquier reseña.
             $borrar = mysqli_prepare($conexion, "DELETE FROM resenias WHERE id = ?");
             mysqli_stmt_bind_param($borrar, "i", $resena_id);
@@ -77,10 +75,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && $libro) {
 // ------------------------------------------------------------
 if ($libro) {
     // Valoración media y número total de reseñas del libro.
-    $consulta = mysqli_prepare($conexion, "SELECT ROUND(AVG(puntuacion), 1) AS media, COUNT(*) AS total FROM resenias WHERE libro_id = ?");
-    mysqli_stmt_bind_param($consulta, "i", $id);
-    mysqli_stmt_execute($consulta);
-    $valoracion = mysqli_fetch_assoc(mysqli_stmt_get_result($consulta));
+    $valoracion = buscar_fila($conexion,
+        "SELECT ROUND(AVG(puntuacion), 1) AS media, COUNT(*) AS total FROM resenias WHERE libro_id = ?",
+        "i", $id);
 
     // Lista de reseñas con el nombre de quien las escribió, de la más nueva a la más antigua.
     $consulta = mysqli_prepare($conexion,
@@ -92,10 +89,9 @@ if ($libro) {
     $resenas = mysqli_stmt_get_result($consulta);
 
     // Reseña del usuario actual (si ya tiene una), para rellenar el formulario.
-    $consulta = mysqli_prepare($conexion, "SELECT puntuacion, comentario FROM resenias WHERE libro_id = ? AND usuario_id = ?");
-    mysqli_stmt_bind_param($consulta, "ii", $id, $_SESSION["id"]);
-    mysqli_stmt_execute($consulta);
-    $mi_resena = mysqli_fetch_assoc(mysqli_stmt_get_result($consulta));
+    $mi_resena = buscar_fila($conexion,
+        "SELECT puntuacion, comentario FROM resenias WHERE libro_id = ? AND usuario_id = ?",
+        "ii", $id, $_SESSION["id"]);
 }
 
 // ------------------------------------------------------------
@@ -107,13 +103,7 @@ if ($libro) {
 $ya_comprado = false;
 
 if ($libro && $libro["formato_digital"] == 1) {
-    $consulta = mysqli_prepare($conexion,
-        "SELECT COUNT(*) AS total FROM venta_lineas
-         JOIN ventas ON ventas.id = venta_lineas.venta_id
-         WHERE ventas.id_cliente = ? AND venta_lineas.libro_id = ? AND venta_lineas.formato = 'digital'");
-    mysqli_stmt_bind_param($consulta, "ii", $_SESSION["id"], $id);
-    mysqli_stmt_execute($consulta);
-    $ya_comprado = (mysqli_fetch_assoc(mysqli_stmt_get_result($consulta))["total"] > 0);
+    $ya_comprado = cliente_compro_digital($conexion, $_SESSION["id"], $id);
 }
 
 // ------------------------------------------------------------
@@ -147,17 +137,11 @@ function estrellas($numero) {
     return str_repeat("★", $llenas) . str_repeat("☆", 5 - $llenas);
 }
 ?>
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?php echo $libro ? htmlspecialchars($libro["titulo"]) : "Libro no encontrado"; ?> - Biblioteca Digital</title>
-    <link rel="stylesheet" href="../css/estilos.css?v=28">
-</head>
-<!-- La clase "pagina-libro" le da a esta página su fondo gris claro (ver estilos.css) -->
-<body class="pagina-libro">
-<?php include "navbar.php"; ?>
+<?php
+$titulo_pagina = $libro ? $libro["titulo"] : "Libro no encontrado";
+$clase_body = "pagina-libro";
+include "cabecera.php";
+?>
 
     <main>
         <!-- Enlace para volver al catálogo -->
@@ -196,7 +180,7 @@ function estrellas($numero) {
                     <?php if ($libro["formato_fisico"] == 1) { ?>
                     <div class="formato-libro">
                         <h3>Formato físico</h3>
-                        <p class="precio">$ <?php echo number_format($libro["precio"], 2, ",", "."); ?></p>
+                        <p class="precio">$ <?php echo formatearPrecio($libro["precio"]); ?></p>
                         <?php if ($libro["stock"] > 0) { ?>
                             <span class="disponible"><?php echo $libro["stock"]; ?> <?php echo ($libro["stock"] == 1) ? "copia disponible" : "copias disponibles"; ?></span>
                         <?php } else { ?>
@@ -211,7 +195,7 @@ function estrellas($numero) {
                     <?php if ($libro["formato_digital"] == 1) { ?>
                     <div class="formato-libro">
                         <h3>Formato digital</h3>
-                        <p class="precio">$ <?php echo number_format($libro["precio_digital"], 2, ",", "."); ?></p>
+                        <p class="precio">$ <?php echo formatearPrecio($libro["precio_digital"]); ?></p>
                         <?php if ($ya_comprado) { ?>
                             <!-- El usuario ya lo compró: no se le vuelve a ofrecer la compra -->
                             <span class="disponible">Ya comprado</span>
@@ -257,7 +241,7 @@ function estrellas($numero) {
                     <span>
                         <strong><?php echo htmlspecialchars($r["titulo"]); ?></strong>
                         <?php echo htmlspecialchars($r["autor"]); ?><br>
-                        $ <?php echo number_format(($r["formato_fisico"] == 1) ? $r["precio"] : $r["precio_digital"], 2, ",", "."); ?>
+                        $ <?php echo formatearPrecio(($r["formato_fisico"] == 1) ? $r["precio"] : $r["precio_digital"]); ?>
                     </span>
                 </a>
                 <?php } ?>
@@ -305,7 +289,7 @@ function estrellas($numero) {
                 <p><?php echo nl2br(htmlspecialchars($r["comentario"])); ?></p>
 
                 <!-- Botón para eliminar: aparece en la reseña propia o si eres administrador -->
-                <?php if ($r["usuario_id"] == $_SESSION["id"] || !empty($_SESSION["admin"])) { ?>
+                <?php if ($r["usuario_id"] == $_SESSION["id"] || $_SESSION["rol"] == "bibliotecario") { ?>
                 <!-- data-confirmar: main.js pregunta antes de enviar el formulario -->
                 <form name="form_eliminar_resenia_<?php echo $r["id"]; ?>" method="POST" action="libro.php?id=<?php echo (int) $id; ?>" data-confirmar="¿Eliminar esta reseña? No se puede deshacer.">
                     <input type="hidden" name="accion" value="eliminar">
@@ -323,13 +307,4 @@ function estrellas($numero) {
         <?php } ?>
     </main>
 
-    <!-- Pie de página -->
-    <footer>
-        <p>Biblioteca Digital</p>
-    </footer>
-</body>
-</html>
-<?php
-// Cierra la conexión con la base de datos al terminar la página.
-mysqli_close($conexion);
-?>
+<?php include "pie.php"; ?>

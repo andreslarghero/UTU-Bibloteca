@@ -14,6 +14,10 @@
 // nada y la Caja sigue funcionando igual.
 // ============================================================
 
+// Usa quitar_tildes() de funciones.php. require_once evita cargarlo
+// dos veces cuando la página ya lo trajo desde conexion.php.
+require_once __DIR__ . "/funciones.php";
+
 // ------------------------------------------------------------
 // CONFIGURACIÓN
 // STEAM_ACTIVO en false apaga el aviso sin tocar la Caja.
@@ -43,11 +47,7 @@ if (!defined("STEAM_ARCHIVO_COMANDO")) {
 // ------------------------------------------------------------
 function steam_texto_lcd($texto) {
     // 1. Cambia las letras con tilde y la ñ por su letra simple.
-    $cambios = [
-        "á" => "a", "é" => "e", "í" => "i", "ó" => "o", "ú" => "u", "ü" => "u", "ñ" => "n",
-        "Á" => "A", "É" => "E", "Í" => "I", "Ó" => "O", "Ú" => "U", "Ü" => "U", "Ñ" => "N"
-    ];
-    $texto = strtr($texto, $cambios);
+    $texto = quitar_tildes($texto);
 
     // 2. La barra "|" separa las partes del comando: no puede ir dentro del título.
     $texto = str_replace("|", " ", $texto);

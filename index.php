@@ -22,20 +22,7 @@ include "php/portada.php";
 // Solo a un usuario dado de baja se le cierra la sesión.
 // ------------------------------------------------------------
 if (isset($_SESSION["id"])) {
-    $consulta = mysqli_prepare($conexion, "SELECT nombre, rol, activo FROM usuarios WHERE id = ?");
-    mysqli_stmt_bind_param($consulta, "i", $_SESSION["id"]);
-    mysqli_stmt_execute($consulta);
-    $usuario_sesion = mysqli_fetch_assoc(mysqli_stmt_get_result($consulta));
-
-    if (!$usuario_sesion || $usuario_sesion["activo"] != 1) {
-        // El usuario ya no existe o fue dado de baja.
-        $_SESSION = [];
-        session_destroy();
-    } else {
-        $_SESSION["nombre"] = $usuario_sesion["nombre"];
-        $_SESSION["rol"] = $usuario_sesion["rol"];
-        $_SESSION["admin"] = ($usuario_sesion["rol"] == "bibliotecario") ? 1 : 0;
-    }
+    actualizar_sesion($conexion);
 }
 
 // ------------------------------------------------------------
@@ -58,7 +45,7 @@ $nav_desde_raiz = true;
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Biblioteca Digital</title>
-    <link rel="stylesheet" href="css/estilos.css?v=28">
+    <link rel="stylesheet" href="css/estilos.css?v=<?php echo CSS_VERSION; ?>">
 </head>
 <body>
 <?php include "php/navbar.php"; ?>
