@@ -10,43 +10,21 @@
 // archivo se sube el número aquí (un solo lugar) y los navegadores
 // descargan la versión nueva.
 define("CSS_VERSION", 30);
-define("JS_VERSION", 8);
+define("JS_VERSION", 9);
 
-// La validación del archivo de portada es del modelo.
-require_once __DIR__ . "/../modelos/portada.php";
+// La validación del archivo de portada es del modelo (clase Portada).
+require_once __DIR__ . "/../modelos/Portada.php";
+require_once __DIR__ . "/../config/Texto.php";
 
 // Precio con el formato del sitio: 1.234,50
 function formatearPrecio($precio) {
-    return number_format($precio, 2, ",", ".");
+    return Texto::precio($precio);
 }
 
 // Convierte un número (1 a 5) en estrellas llenas y vacías, por ejemplo 3 = ★★★☆☆.
 function estrellas($numero) {
     $llenas = (int) round($numero);
     return str_repeat("★", $llenas) . str_repeat("☆", 5 - $llenas);
-}
-
-// Devuelve la dirección que hay que poner en el "src" de la imagen,
-// o "" si el libro no tiene una portada que se pueda mostrar.
-function portada_src($portada) {
-    $portada = trim((string) $portada);
-
-    // Dirección web completa (un libro cargado con una imagen de otro sitio).
-    if (preg_match('#^https?://#i', $portada)) {
-        return $portada;
-    }
-
-    // Portada local: tiene que pasar toda la validación. Si no, se
-    // usa el reemplazo.
-    $local = portada_local($portada);
-    if ($local === "") {
-        return "";
-    }
-
-    // La ruta guardada es relativa a la carpeta principal del proyecto.
-    // Las páginas que están dentro de "php" tienen que subir un nivel.
-    $en_carpeta_php = realpath(dirname($_SERVER["SCRIPT_FILENAME"])) === realpath(__DIR__ . "/../php");
-    return ($en_carpeta_php ? "../" : "") . $local;
 }
 
 // Dibuja una portada: la imagen o, si el archivo no está, un reemplazo
@@ -80,7 +58,7 @@ function portada_html($titulo, $portada, $critica = false) {
     // Imagen (solo si hay una portada que se pueda mostrar).
     // htmlspecialchars evita que la dirección o el título se
     // interpreten como HTML.
-    $src = portada_src($portada);
+    $src = Portada::src($portada);
     if ($src !== "") {
         $html .= '<img src="' . htmlspecialchars($src) . '" alt="' . htmlspecialchars($titulo) . '"'
                . ($critica ? '' : ' loading="lazy"') . '>';

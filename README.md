@@ -34,51 +34,56 @@ No usa frameworks ni servicios externos: funciona en una computadora local, sin 
 
 ---
 
-## Arquitectura: Modelo - Vista - Controlador
+## Arquitectura: programación orientada a objetos con MVC
 
-El sitio sigue el patrón MVC. Cada dirección (por ejemplo `php/caja.php`) es un punto de entrada de 3 líneas que llama a su controlador; así las direcciones no cambian.
+El sitio sigue la estructura vista en clase: **un solo punto de entrada (enrutador)**, controladores como clases, modelos con sus repositorios y vistas separadas por entidad. Los datos se guardan en MySQL y se leen con **PDO** y consultas preparadas.
 
 ```
-Navegador ──► php/caja.php ──► controladores/caja.php ──► modelos/venta.php ──► MySQL
-                                       │                        │
-                                       └──► vistas/caja.php ◄───┘  (datos como arreglos)
+Navegador ──► index.php (enrutador) ──► controladores/LibroController.php ──► modelos/RepositorioLibros.php ──► MySQL
+                                                  │                                    │
+                                                  └──► vistas/libros/ver.php ◄─────────┘   (objetos Libro, Resena...)
 ```
 
-| Capa            | Carpeta          | Qué hace                                                                                                                                 | Qué NO hace                                      |
-| --------------- | ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------ |
-| **Modelo**      | `modelos/`       | Todo el SQL (consultas preparadas), las transacciones de venta y la validación de archivos de portada. Devuelve arreglos.                | No lee `$_POST` ni `$_SESSION`, no dibuja HTML.  |
-| **Vista**       | `vistas/`        | El HTML de cada página y sus partes comunes (`parciales/`). Muestra los datos que le entrega el controlador.                             | No consulta la base de datos ni decide permisos. |
-| **Controlador** | `controladores/` | Verifica sesión y rol, lee y valida lo que envía el navegador, llama a los modelos, elige el mensaje y la redirección, y carga la vista. | No escribe SQL ni HTML.                          |
+Las direcciones se arman con el controlador y la acción:
 
-Reglas del proyecto: ninguna vista usa `mysqli_*`; ningún controlador escribe SQL; las consultas del cliente (mis compras, descargas) y las del bibliotecario (operaciones) están separadas a propósito en `modelos/venta.php` para no exponer compras ajenas. Las carpetas `modelos/`, `controladores/` y `vistas/` tienen un `.htaccess` que impide abrirlas desde el navegador.
+```
+index.php?controlador=libro&accion=ver&id=3        ficha de un libro
+index.php?controlador=caja                         caja (acción por defecto: index)
+index.php?controlador=libroadmin&accion=editar&id=3
+```
 
----
-
-## Estructura del repositorio
+### Estructura del repositorio
 
 ```
 PROYECTO/
-├── index.php                 Punto de entrada de la página de inicio
+├── index.php                 Enrutador: lee controlador y acción y llama al controlador
 ├── index.html                Dirección anterior: lleva a index.php
 ├── .htaccess                 Impide abrir los archivos .md desde el navegador
+├── config/
+│   ├── Conexion.php          Clase Conexion: una sola conexión PDO para toda la aplicación
+│   ├── Ruta.php              Arma las direcciones (controlador + acción)
+│   └── Texto.php             Utilidades de texto (precio, sin tildes)
+├── controladores/            CONTROLADORES: una clase por tema, una acción por método
+│   ├── Controller.php        Clase abstracta base: sesión, permisos, avisos, redirigir, render
+│   ├── InicioController.php, AuthController.php, LibroController.php, PerfilController.php,
+│   │   CompraController.php, CajaController.php, StockController.php, ResenaController.php,
+│   │   LibroAdminController.php, UsuarioAdminController.php, OperacionController.php
+├── modelos/                  MODELO: entidades y repositorios
+│   ├── Repositorio.php       Interfaz: todos() y buscar($id)
+│   ├── Usuario.php (abstracta) → Cliente.php, Bibliotecario.php
+│   ├── Venta.php (abstracta)   → VentaMostrador.php, VentaDigital.php
+│   ├── Libro.php, Categoria.php, Resena.php, LineaVenta.php, Ticket.php, ResultadoVenta.php
+│   ├── RepositorioUsuarios.php, RepositorioLibros.php, RepositorioCategorias.php,
+│   │   RepositorioResenas.php, RepositorioVentas.php
+│   └── Portada.php, ArchivoDigital.php, Steam.php   Archivos de portada, PDF/EPUB y aviso al Arduino
+├── vistas/                   VISTAS: el HTML, una carpeta por entidad
+│   ├── libros/, compras/, caja/, stock/, resenas/, operaciones/, usuarios/, perfil/, auth/, inicio/
+│   ├── parciales/            Cabecera, menú, pie y bloque visual de login
+│   └── ayudas.php            Precios, estrellas y portadas
 ├── css/estilos.css           Estilos de todo el sitio
 ├── js/main.js                JavaScript de todo el sitio
 ├── img/portadas/             20 portadas locales (.webp) de los libros físicos
 ├── digitales/                10 PDF de demostración (protegidos con .htaccess)
-├── modelos/                  MODELO: acceso a la base de datos y reglas de los datos
-│   ├── conexion.php          Conexión a la base de datos y funciones de consulta
-│   ├── usuario.php, libro.php, categoria.php, venta.php, resena.php
-│   └── portada.php           Validación de los archivos de portada
-├── vistas/                   VISTA: HTML de cada página
-│   ├── caja.php, libros.php, libro.php, ... (una por página)
-│   ├── ayudas.php            Precios, estrellas y portadas
-│   └── parciales/            Cabecera, menú, pie y bloque visual de login
-├── controladores/            CONTROLADOR: recibe la petición, valida y decide
-│   ├── caja.php, libros.php, libro.php, ... (uno por página)
-│   ├── verificar_usuario.php, verificar_bibliotecario.php   Control de acceso
-│   ├── ayudas.php            Lectura de datos del navegador, validaciones y avisos
-│   └── steam.php             Aviso al Arduino (STEAM)
-├── php/                      Puntos de entrada: cada URL (php/caja.php...) solo llama a su controlador
 ├── sql/biblioteca.sql        Instalación limpia de la base de datos
 └── steam/
     ├── README_STEAM.md       Circuito, conexiones, comandos y validación
@@ -89,7 +94,28 @@ PROYECTO/
         └── README_PUENTE.md
 ```
 
-Los documentos de la entrega (documento final, planilla de pruebas, matriz de riesgos, actas, DER y documentación de Ingeniería y de Base de Datos) se entregan aparte y **no forman parte de este repositorio**.
+### Qué hace cada capa
+
+| Capa | Qué hace | Qué NO hace |
+|---|---|---|
+| **Modelo** (`modelos/`) | Las entidades (`Libro`, `Usuario`, `Venta`...) guardan sus datos en atributos privados y validan sus reglas. Los repositorios traducen entre las tablas y los objetos con PDO. | No lee `$_POST` ni `$_SESSION`, no dibuja HTML. |
+| **Vista** (`vistas/`) | Dibuja el HTML con los objetos que le entrega el controlador. | No consulta la base de datos ni decide permisos. |
+| **Controlador** (`controladores/`) | Comprueba la sesión y el rol, lee y valida lo que envía el navegador, llama a los repositorios, elige el mensaje y la redirección y carga la vista. | No escribe SQL ni HTML. |
+
+### Programación orientada a objetos aplicada
+
+| Concepto | Dónde se usa |
+|---|---|
+| Clases, atributos privados, constructor, getters | todas las entidades (`Libro`, `Resena`, `Categoria`, `LineaVenta`...) |
+| Encapsulamiento y validación en la clase | `Libro::validar()`, `Usuario::validarNombreCorreo()`, `Resena::nueva()` (limita la puntuación entre 1 y 5) |
+| Herencia (`extends`, `parent::`) | `Cliente` y `Bibliotecario` heredan de `Usuario`; `VentaMostrador` y `VentaDigital` heredan de `Venta`; todos los controladores heredan de `Controller` |
+| Clases abstractas | `Usuario`, `Venta` y `Controller` no se instancian |
+| Polimorfismo (sobrescritura) | `enlacesMenu()`: el menú del `Bibliotecario` agrega los enlaces de gestión con `parent::enlacesMenu()`. `RepositorioVentas::registrar()` guarda cualquier `Venta` y cada clase hija decide cómo comprobar el libro y qué pasa con el stock |
+| Interfaz | `Repositorio` (contrato: `todos()` y `buscar()`) la implementan los cinco repositorios |
+| `__toString()` | `Usuario`, `Libro`, `Categoria` y `Resena` (las estrellas) |
+| Miembros estáticos | `Conexion::getConexion()` (una sola conexión), `Ruta::a()`, `Portada`, `Texto`, `Steam`, `Usuario::desdeFila()` |
+
+Las consultas del cliente (mis compras, descargas) y las del bibliotecario (operaciones) están separadas a propósito en `RepositorioVentas` para no exponer compras ajenas. Las carpetas `config/`, `modelos/`, `controladores/` y `vistas/` tienen un `.htaccess` que impide abrirlas desde el navegador.
 
 ---
 
@@ -120,7 +146,7 @@ Los documentos de la entrega (documento final, planilla de pruebas, matriz de ri
 
 ### Conexión a la base
 
-Los datos de conexión están en `modelos/conexion.php` y vienen con los valores por defecto de XAMPP para un **entorno local**: servidor `localhost`, usuario `root` sin contraseña y base `biblioteca`. Si el MySQL de la computadora usa otros datos, se cambian en ese archivo. **No usar esta configuración en un servidor público.**
+Los datos de conexión están en `config/Conexion.php` y vienen con los valores por defecto de XAMPP para un **entorno local**: servidor `localhost`, usuario `root` sin contraseña y base `biblioteca`. Si el MySQL de la computadora usa otros datos, se cambian en ese archivo. **No usar esta configuración en un servidor público.**
 
 ### Cuentas de demostración
 
@@ -194,9 +220,9 @@ python steam/puente/puente_arduino.py --archivo --simular
 
 ### Ruta del archivo de comando
 
-La Caja escribe el archivo de comando en `steam/puente/comando_steam.txt`, **dentro del propio proyecto** (la ruta se calcula desde `php/steam.php`), y el puente lo lee de esa misma carpeta. Por eso funciona en cualquier PC sin configurar nada.
+La Caja escribe el archivo de comando en `steam/puente/comando_steam.txt`, **dentro del propio proyecto** (la ruta se calcula desde `modelos/Steam.php`), y el puente lo lee de esa misma carpeta. Por eso funciona en cualquier PC sin configurar nada.
 
-Si en una computadora el puente se ejecuta desde otra carpeta, se puede crear `php/steam_config_local.php` (no se sube al repositorio) con:
+Si en una computadora el puente se ejecuta desde otra carpeta, se puede crear `config/steam_config_local.php` (no se sube al repositorio) con:
 
 ```php
 <?php define("STEAM_ARCHIVO_COMANDO", "D:/otra/carpeta/steam/puente/comando_steam.txt"); ?>

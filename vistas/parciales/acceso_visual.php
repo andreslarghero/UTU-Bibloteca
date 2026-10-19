@@ -6,7 +6,7 @@
 // libros superpuestos y el lema. Los libros quedan quietos (no
 // hay animaciones continuas). Es solo decoración, por eso lleva
 // aria-hidden. En el móvil no se muestra.
-// Se incluye desde login.php y registro.php: así las dos páginas
+// Se incluye desde las vistas de login y registro: así las dos páginas
 // usan exactamente el mismo bloque.
 // ============================================================
 

@@ -16,8 +16,8 @@ GUIA_DEFENSA_NEXORA.md
 # Archivo de trabajo de STEAM (lo crea la Caja al escanear)
 comando_steam.txt
 
-# Configuración local de STEAM de cada PC (ver php/steam.php)
-php/steam_config_local.php
+# Configuración local de STEAM de cada PC (ver modelos/Steam.php)
+config/steam_config_local.php
 
 # Respaldos
 *_backup_*

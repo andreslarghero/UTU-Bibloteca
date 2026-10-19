@@ -181,8 +181,8 @@ El Arduino **no consulta MySQL**. La Caja hace la consulta, y el resultado viaja
 
 | Archivo | Función |
 |---|---|
-| `controladores/caja.php` | Después de cada escaneo llama a una función de `steam.php` |
-| `controladores/steam.php` | Arma el comando y lo escribe en el archivo. Tiene la configuración (ruta y encendido/apagado) |
+| `controladores/CajaController.php` | Después de cada escaneo llama a un método de la clase `Steam` |
+| `modelos/Steam.php` | Arma el comando y lo escribe en el archivo. Tiene la configuración (ruta y encendido/apagado) |
 | `steam/puente/comando_steam.txt` | Archivo de comando. Lo crea la Caja sola en el primer escaneo |
 | `steam/puente/puente_arduino.py --archivo` | Lee el archivo y envía cada evento nuevo al Arduino |
 
@@ -227,16 +227,16 @@ Al arrancar, el puente toma lo que ya estaba escrito como evento viejo y no lo e
 
 ### STEAM nunca frena la Caja
 
-Si la carpeta no existe, no hay permiso de escritura, el archivo está ocupado o el puente está apagado, `steam.php` no hace nada y no muestra errores. La Caja sigue vendiendo igual.
+Si la carpeta no existe, no hay permiso de escritura, el archivo está ocupado o el puente está apagado, `Steam` no hace nada y no muestra errores. La Caja sigue vendiendo igual.
 
-Para apagar el aviso sin tocar la Caja: en `controladores/steam.php`, poner `STEAM_ACTIVO` en `false`.
+Para apagar el aviso sin tocar la Caja: en `modelos/Steam.php`, poner la constante `ACTIVO` en `false`.
 
-**Ruta del archivo.** Por defecto, `controladores/steam.php` calcula la ruta desde su propia ubicación: `<carpeta del proyecto>/steam/puente/comando_steam.txt`. Así funciona al clonar el proyecto en cualquier PC, sin depender de una letra de unidad, y el puente la lee desde su misma carpeta. Si una PC necesita otra ruta, se crea `php/steam_config_local.php` (no se sube a GitHub) con `define("STEAM_ARCHIVO_COMANDO", "...");`. En la PC del equipo ese archivo apunta a `E:/PROYECTO/steam/puente/comando_steam.txt`, que es la configuración con la que se validó la placa física.
+**Ruta del archivo.** Por defecto, `modelos/Steam.php` calcula la ruta desde su propia ubicación: `<carpeta del proyecto>/steam/puente/comando_steam.txt`. Así funciona al clonar el proyecto en cualquier PC, sin depender de una letra de unidad, y el puente la lee desde su misma carpeta. Si una PC necesita otra ruta, se crea `config/steam_config_local.php` (no se sube a GitHub) con `define("STEAM_ARCHIVO_COMANDO", "...");`. En la PC del equipo ese archivo apunta a `E:/PROYECTO/steam/puente/comando_steam.txt`, que es la configuración con la que se validó la placa física.
 
 ### Limitaciones conocidas
 
 - El archivo guarda solo el último evento. Si dos escaneos llegan con menos de 0,2 segundos de diferencia, el puente puede ver solo el último. Con un lector de mano y la recarga de la página entre escaneos no es un caso habitual.
-- Si la Caja (en `htdocs`) y el puente usan carpetas distintas, el Arduino no recibe avisos: hay que lanzar el puente con `--archivo "ruta"` o ajustar `php/steam_config_local.php` (riesgo R19 de la matriz).
+- Si la Caja (en `htdocs`) y el puente usan carpetas distintas, el Arduino no recibe avisos: hay que lanzar el puente con `--archivo "ruta"` o ajustar `config/steam_config_local.php` (riesgo R19 de la matriz).
 - El LCD no muestra tildes ni ñ y corta en 16 caracteres; por eso se envía una copia adaptada del título.
 
 ---
@@ -255,7 +255,7 @@ Para apagar el aviso sin tocar la Caja: en `controladores/steam.php`, poner `STE
    Elegir el puerto del Arduino (o indicarlo con `--puerto COM3`) y esperar el mensaje `Arduino -> LISTO`.
 5. Entrar a la Caja como bibliotecario y escanear un libro. El puente muestra `CAJA -> ...`, `PC -> ...` y `Arduino -> RECIBIDO: ...`, y la placa muestra el resultado.
 
-El puente lee el archivo de comando de su propia carpeta. En una instalación nueva (clonando el repositorio en `htdocs`) la Caja escribe ahí mismo y no hay que configurar nada. En la PC del equipo, la Caja de `htdocs` escribe en `E:\PROYECTO\steam\puente` (por `php/steam_config_local.php`), así que el puente se ejecuta desde esa carpeta.
+El puente lee el archivo de comando de su propia carpeta. En una instalación nueva (clonando el repositorio en `htdocs`) la Caja escribe ahí mismo y no hay que configurar nada. En la PC del equipo, la Caja de `htdocs` escribe en `E:\PROYECTO\steam\puente` (por `config/steam_config_local.php`), así que el puente se ejecuta desde esa carpeta.
 
 ---
 

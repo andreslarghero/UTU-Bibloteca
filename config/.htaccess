@@ -1,0 +1,6 @@
+# ============================================================
+# CARPETA config
+# Configuración interna (datos de acceso a la base, direcciones): nadie
+# puede abrir estos archivos escribiendo su dirección en el navegador.
+# ============================================================
+Require all denied

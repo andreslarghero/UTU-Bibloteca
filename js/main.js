@@ -72,6 +72,12 @@
         } catch (error) { /* sin almacenamiento: no pasa nada */ }
     }
 
+    // La pantalla en la que está la persona: el controlador de la dirección
+    // (index.php?controlador=stock). Sirve para recordar qué fila se modificó.
+    function pantalla() {
+        return new URLSearchParams(location.search).get("controlador") || location.pathname;
+    }
+
     // Avisa una sola vez cuando un elemento entra en la pantalla.
     // Todo el sitio comparte UN solo observador: cada elemento
     // anotado tiene su acción, que recibe el elemento y su orden
@@ -971,14 +977,14 @@
             var oculto = uno('input[type="hidden"][name="id"]', formulario);
             var id = fila ? fila.getAttribute("data-fila") : (oculto && parseInt(oculto.value, 10) > 0 ? oculto.value : null);
             if (id) {
-                guardar("fila-modificada", { pagina: location.pathname, id: id });
+                guardar("fila-modificada", { pagina: pantalla(), id: id });
             }
         });
 
         // --- Resaltarla al volver, si PHP avisó que salió bien ---
         var recordada = leer("fila-modificada");
         olvidar("fila-modificada");
-        if (recordada && recordada.pagina === location.pathname && uno("main > p.exito")) {
+        if (recordada && recordada.pagina === pantalla() && uno("main > p.exito")) {
             var modificada = uno('tr[data-fila="' + String(recordada.id).replace(/"/g, "") + '"]');
             if (modificada && !modificada.classList.contains("fila-nueva")) {
                 modificada.classList.add("fila-actualizada");
