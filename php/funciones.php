@@ -9,7 +9,7 @@
 // Versiones de la hoja de estilos y del JavaScript. Al cambiar un
 // archivo se sube el número aquí (un solo lugar) y los navegadores
 // descargan la versión nueva.
-define("CSS_VERSION", 29);
+define("CSS_VERSION", 30);
 define("JS_VERSION", 8);
 
 // Precio con el formato del sitio: 1.234,50

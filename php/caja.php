@@ -130,10 +130,22 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     // --- Finalizar la venta ---
     // Guarda la venta, sus líneas y descuenta el stock dentro de una
     // transacción: o se guarda todo (COMMIT) o no se guarda nada (ROLLBACK).
-    // Es una venta de mostrador: sin cliente y con el bibliotecario como vendedor.
+    // Es una venta de mostrador: el bibliotecario es el vendedor. El cliente es
+    // opcional: si se escribe su correo, la venta queda a su nombre y aparece en
+    // su "Mis compras"; si se deja vacío, queda sin cliente.
     if ($accion == "finalizar") {
+        // Cliente de la venta (solo un usuario que exista y esté activo).
+        $correo_cliente = texto_de($_POST["correo_cliente"] ?? null);
+        $cliente = null;
+        if ($correo_cliente != "") {
+            $cliente = buscar_fila($conexion, "SELECT id FROM usuarios WHERE correo = ? AND activo = 1", "s", $correo_cliente);
+        }
+
         if (count($_SESSION["ticket"]) == 0) {
             $mensaje = "El ticket está vacío.";
+        } elseif ($correo_cliente != "" && !$cliente) {
+            // El ticket se conserva para poder corregir el correo.
+            $mensaje = "No hay un usuario activo con ese correo.";
         } else {
             // Se ordena el ticket por id de libro para que todas las ventas
             // bloqueen los libros en el mismo orden.
@@ -145,6 +157,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $lineas = [];      // Líneas definitivas de la venta
             $venta_id = 0;
             $vendedor = $_SESSION["id"];
+            $id_cliente = $cliente ? $cliente["id"] : null;   // null = venta sin cliente
 
             try {
                 mysqli_begin_transaction($conexion);
@@ -188,8 +201,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 // 2. Guarda la venta (la fecha la pone sola la base).
                 if ($error == "") {
                     $total = round($total, 2);
-                    $insertar = mysqli_prepare($conexion, "INSERT INTO ventas (id_cliente, id_vendedor, total) VALUES (NULL, ?, ?)");
-                    mysqli_stmt_bind_param($insertar, "id", $vendedor, $total);
+                    $insertar = mysqli_prepare($conexion, "INSERT INTO ventas (id_cliente, id_vendedor, total) VALUES (?, ?, ?)");
+                    mysqli_stmt_bind_param($insertar, "iid", $id_cliente, $vendedor, $total);
 
                     if (mysqli_stmt_execute($insertar)) {
                         // Número de la venta recién creada.
@@ -371,8 +384,11 @@ include "cabecera.php";
                  data-total: el valor sin formato, para que main.js anime el número. -->
             <p class="total-caja">Total a cobrar <strong data-total="<?php echo number_format($total, 2, ".", ""); ?>">$ <?php echo formatearPrecio($total); ?></strong></p>
             <!-- Guarda la venta en la base y descuenta el stock -->
-            <form name="form_caja_finalizar" method="POST" action="caja.php">
+            <form class="form-finalizar" name="form_caja_finalizar" method="POST" action="caja.php">
                 <input type="hidden" name="accion" value="finalizar">
+                <!-- Opcional: con el correo del cliente, la compra aparece en su "Mis compras" -->
+                <label for="correo_cliente">Correo del cliente (opcional)</label>
+                <input type="email" id="correo_cliente" name="correo_cliente" maxlength="150" autocomplete="off" placeholder="cliente@correo.com">
                 <button class="btn btn-success btn-lg" type="submit">Finalizar venta</button>
             </form>
         </div>

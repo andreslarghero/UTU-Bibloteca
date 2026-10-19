@@ -784,7 +784,8 @@ label.campo-activo {
    cada fila de una tabla: elementos en fila con un espacio pequeño --- */
 .form-stock,
 .carrusel-controles,
-.acciones-linea {
+.acciones-linea,
+.form-finalizar {
     display: flex;
     align-items: center;
     gap: var(--space-2);
@@ -1968,6 +1969,21 @@ body.pagina-libro {
     align-items: center;
     flex-wrap: wrap;
     gap: var(--space-3);
+}
+
+/* Finalizar venta: correo opcional del cliente y botón */
+.form-finalizar {
+    flex-wrap: wrap;
+}
+
+.form-finalizar label {
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.form-finalizar input {
+    width: 240px;
+    max-width: 100%;
 }
 
 /* Total de la venta, bien visible al lado del botón de finalizar */

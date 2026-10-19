@@ -6,7 +6,8 @@
 // comprados en formato digital tienen un enlace "Descargar".
 // Es solo de consulta: no modifica nada de la base.
 // Cada usuario ve únicamente las ventas en las que él es el
-// cliente. Las ventas de mostrador (sin cliente) no aparecen.
+// cliente. Una venta de mostrador aparece solo si el bibliotecario
+// indicó el correo del cliente al finalizarla; si no, queda sin cliente.
 // ============================================================
 
 // ------------------------------------------------------------
