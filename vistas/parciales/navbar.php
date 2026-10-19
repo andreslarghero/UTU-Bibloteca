@@ -1,6 +1,6 @@
 <?php
 // ============================================================
-// ENCABEZADO Y MENÚ DE NAVEGACIÓN
+// VISTA PARCIAL: ENCABEZADO Y MENÚ DE NAVEGACIÓN
 // Este archivo se incluye en todas las páginas para que el menú
 // sea siempre el mismo. Mira la sesión y muestra:
 //   - sin sesión:     Inicio, Iniciar sesión, Registrarse
@@ -9,7 +9,7 @@
 //
 // OJO: el menú es solo navegación, NO es seguridad. Que un enlace
 // no se muestre no impide entrar escribiendo la dirección: de eso
-// se encargan verificar_usuario.php y verificar_bibliotecario.php
+// se encargan controladores/verificar_usuario.php y verificar_bibliotecario.php
 // al principio de cada página.
 // ============================================================
 

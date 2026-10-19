@@ -1,21 +1,13 @@
 <?php
 // ============================================================
-// FUNCIONES COMPARTIDAS
-// Ayudas que usan varias páginas. Este archivo se incluye desde
-// conexion.php, así que está disponible en todas las páginas que
-// se conectan a la base de datos.
+// CONTROLADOR: AYUDAS COMPARTIDAS
+// Funciones que usan varios controladores para leer lo que envía
+// el navegador, validar datos y guardar avisos entre páginas.
+// No dibujan HTML (eso es de las vistas) ni consultan tablas
+// directamente (eso es de los modelos).
 // ============================================================
 
-// Versiones de la hoja de estilos y del JavaScript. Al cambiar un
-// archivo se sube el número aquí (un solo lugar) y los navegadores
-// descargan la versión nueva.
-define("CSS_VERSION", 30);
-define("JS_VERSION", 8);
-
-// Precio con el formato del sitio: 1.234,50
-function formatearPrecio($precio) {
-    return number_format($precio, 2, ",", ".");
-}
+require_once __DIR__ . "/../modelos/usuario.php";
 
 // Texto enviado por el navegador, sin espacios sobrantes. Si el
 // valor no existe o no es un texto, devuelve "". Con $recortar en
@@ -33,17 +25,6 @@ function entero_de($valor) {
     return (is_string($valor) && ctype_digit($valor)) ? (int) $valor : 0;
 }
 
-// Ejecuta una consulta preparada que devuelve UNA fila y la devuelve
-// como arreglo (o null si no hay). $sql lleva "?" donde van los valores;
-// $tipos son sus tipos ("i" entero, "s" texto, "d" decimal), en el
-// mismo orden que $valores. Los valores nunca se pegan en el SQL.
-function buscar_fila($conexion, $sql, $tipos, ...$valores) {
-    $consulta = mysqli_prepare($conexion, $sql);
-    mysqli_stmt_bind_param($consulta, $tipos, ...$valores);
-    mysqli_stmt_execute($consulta);
-    return mysqli_fetch_assoc(mysqli_stmt_get_result($consulta));
-}
-
 // Cambia las letras con tilde y la ñ por su letra simple.
 function quitar_tildes($texto) {
     return strtr($texto, [
@@ -56,7 +37,7 @@ function quitar_tildes($texto) {
 // y activo, y actualiza su nombre y su rol en la sesión. Si ya no
 // existe o fue dado de baja, cierra la sesión y devuelve false.
 function actualizar_sesion($conexion) {
-    $usuario = buscar_fila($conexion, "SELECT nombre, rol, activo FROM usuarios WHERE id = ?", "i", $_SESSION["id"]);
+    $usuario = usuario_por_id($conexion, $_SESSION["id"]);
 
     if (!$usuario || $usuario["activo"] != 1) {
         $_SESSION = [];
@@ -85,23 +66,11 @@ function validar_nombre_correo($conexion, $nombre, $correo, $id = 0) {
         $errores[] = "El correo es obligatorio.";
     } elseif (strlen($correo) > 150 || !filter_var($correo, FILTER_VALIDATE_EMAIL)) {
         $errores[] = "El correo no es válido.";
-    } else {
-        if (buscar_fila($conexion, "SELECT id FROM usuarios WHERE correo = ? AND id <> ?", "si", $correo, $id)) {
-            $errores[] = "Ya existe otro usuario con ese correo.";
-        }
+    } elseif (usuario_correo_en_uso($conexion, $correo, $id)) {
+        $errores[] = "Ya existe otro usuario con ese correo.";
     }
 
     return $errores;
-}
-
-// ¿Este cliente ya compró este libro en formato digital?
-function cliente_compro_digital($conexion, $id_cliente, $libro_id) {
-    $fila = buscar_fila($conexion,
-        "SELECT COUNT(*) AS total FROM venta_lineas
-         JOIN ventas ON ventas.id = venta_lineas.venta_id
-         WHERE ventas.id_cliente = ? AND venta_lineas.libro_id = ? AND venta_lineas.formato = 'digital'",
-        "ii", $id_cliente, $libro_id);
-    return $fila["total"] > 0;
 }
 
 // Aviso de una página que se muestra una sola vez después de

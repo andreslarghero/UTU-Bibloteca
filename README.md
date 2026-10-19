@@ -2,7 +2,7 @@
 
 Aplicación web de una biblioteca que vende libros **físicos** (en el mostrador) y **digitales** (por la web), con una parte **STEAM**: un Arduino con pantalla LCD, LED y zumbador que muestra el resultado de cada libro escaneado en la Caja.
 
-Proyecto académico del grupo **NEXORA** (grupo de clase TH1, 2026).
+Proyecto académico del grupo **NEXORA** (grupo de clase TH2, 2026).
 
 > **Estado:** proyecto terminado. Diseño Web, Programación, Base de Datos, Ingeniería de Software y STEAM completos. STEAM validado con la placa física.
 
@@ -34,21 +34,51 @@ No usa frameworks ni servicios externos: funciona en una computadora local, sin 
 
 ---
 
+## Arquitectura: Modelo - Vista - Controlador
+
+El sitio sigue el patrón MVC. Cada dirección (por ejemplo `php/caja.php`) es un punto de entrada de 3 líneas que llama a su controlador; así las direcciones no cambian.
+
+```
+Navegador ──► php/caja.php ──► controladores/caja.php ──► modelos/venta.php ──► MySQL
+                                       │                        │
+                                       └──► vistas/caja.php ◄───┘  (datos como arreglos)
+```
+
+| Capa            | Carpeta          | Qué hace                                                                                                                                 | Qué NO hace                                      |
+| --------------- | ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------ |
+| **Modelo**      | `modelos/`       | Todo el SQL (consultas preparadas), las transacciones de venta y la validación de archivos de portada. Devuelve arreglos.                | No lee `$_POST` ni `$_SESSION`, no dibuja HTML.  |
+| **Vista**       | `vistas/`        | El HTML de cada página y sus partes comunes (`parciales/`). Muestra los datos que le entrega el controlador.                             | No consulta la base de datos ni decide permisos. |
+| **Controlador** | `controladores/` | Verifica sesión y rol, lee y valida lo que envía el navegador, llama a los modelos, elige el mensaje y la redirección, y carga la vista. | No escribe SQL ni HTML.                          |
+
+Reglas del proyecto: ninguna vista usa `mysqli_*`; ningún controlador escribe SQL; las consultas del cliente (mis compras, descargas) y las del bibliotecario (operaciones) están separadas a propósito en `modelos/venta.php` para no exponer compras ajenas. Las carpetas `modelos/`, `controladores/` y `vistas/` tienen un `.htaccess` que impide abrirlas desde el navegador.
+
+---
+
 ## Estructura del repositorio
 
 ```
 PROYECTO/
-├── index.php                 Página de inicio
+├── index.php                 Punto de entrada de la página de inicio
 ├── index.html                Dirección anterior: lleva a index.php
 ├── .htaccess                 Impide abrir los archivos .md desde el navegador
 ├── css/estilos.css           Estilos de todo el sitio
 ├── js/main.js                JavaScript de todo el sitio
 ├── img/portadas/             20 portadas locales (.webp) de los libros físicos
 ├── digitales/                10 PDF de demostración (protegidos con .htaccess)
-├── php/                      Páginas y lógica del sitio
-│   ├── conexion.php          Conexión a la base de datos
-│   ├── steam.php             Aviso al Arduino (STEAM)
-│   └── ...
+├── modelos/                  MODELO: acceso a la base de datos y reglas de los datos
+│   ├── conexion.php          Conexión a la base de datos y funciones de consulta
+│   ├── usuario.php, libro.php, categoria.php, venta.php, resena.php
+│   └── portada.php           Validación de los archivos de portada
+├── vistas/                   VISTA: HTML de cada página
+│   ├── caja.php, libros.php, libro.php, ... (una por página)
+│   ├── ayudas.php            Precios, estrellas y portadas
+│   └── parciales/            Cabecera, menú, pie y bloque visual de login
+├── controladores/            CONTROLADOR: recibe la petición, valida y decide
+│   ├── caja.php, libros.php, libro.php, ... (uno por página)
+│   ├── verificar_usuario.php, verificar_bibliotecario.php   Control de acceso
+│   ├── ayudas.php            Lectura de datos del navegador, validaciones y avisos
+│   └── steam.php             Aviso al Arduino (STEAM)
+├── php/                      Puntos de entrada: cada URL (php/caja.php...) solo llama a su controlador
 ├── sql/biblioteca.sql        Instalación limpia de la base de datos
 └── steam/
     ├── README_STEAM.md       Circuito, conexiones, comandos y validación
@@ -90,7 +120,7 @@ Los documentos de la entrega (documento final, planilla de pruebas, matriz de ri
 
 ### Conexión a la base
 
-Los datos de conexión están en `php/conexion.php` y vienen con los valores por defecto de XAMPP para un **entorno local**: servidor `localhost`, usuario `root` sin contraseña y base `biblioteca`. Si el MySQL de la computadora usa otros datos, se cambian en ese archivo. **No usar esta configuración en un servidor público.**
+Los datos de conexión están en `modelos/conexion.php` y vienen con los valores por defecto de XAMPP para un **entorno local**: servidor `localhost`, usuario `root` sin contraseña y base `biblioteca`. Si el MySQL de la computadora usa otros datos, se cambian en ese archivo. **No usar esta configuración en un servidor público.**
 
 ### Cuentas de demostración
 
@@ -100,11 +130,11 @@ La instalación limpia trae dos cuentas ficticias: `bibliotecario@example.com` (
 
 ## Funcionalidades
 
-| Rol | Qué puede hacer |
-|---|---|
-| Visitante | Ver el inicio, registrarse e iniciar sesión |
-| Cliente | Catálogo, búsqueda, filtro por categoría, ficha del libro, reseñas, perfil, compra digital, Mis compras y descarga del libro comprado |
-| Bibliotecario | Todo lo del cliente, más Caja del mostrador, Operaciones, Stock, Libros, Usuarios y Reseñas |
+| Rol           | Qué puede hacer                                                                                                                       |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| Visitante     | Ver el inicio, registrarse e iniciar sesión                                                                                           |
+| Cliente       | Catálogo, búsqueda, filtro por categoría, ficha del libro, reseñas, perfil, compra digital, Mis compras y descarga del libro comprado |
+| Bibliotecario | Todo lo del cliente, más Caja del mostrador, Operaciones, Stock, Libros, Usuarios y Reseñas                                           |
 
 - El catálogo requiere haber iniciado sesión.
 - La compra digital es **simulada** (no hay medio de pago).
@@ -129,11 +159,11 @@ Arduino Uno
 LCD 16x2 I2C + LED verde / rojo + zumbador
 ```
 
-| Comando | Cuándo | LCD | LED | Sonido |
-|---|---|---|---|---|
-| `OK\|titulo\|precio` | Libro físico con stock | Título / `$precio` | Verde | Bip corto |
-| `NO_ENCONTRADO` | El código no existe | `No encontrado` | Rojo | Bip largo |
-| `AGOTADO\|titulo` | Libro físico con stock 0 | Título / `Sin stock` | Rojo | Tres bips |
+| Comando              | Cuándo                   | LCD                  | LED   | Sonido    |
+| -------------------- | ------------------------ | -------------------- | ----- | --------- |
+| `OK\|titulo\|precio` | Libro físico con stock   | Título / `$precio`   | Verde | Bip corto |
+| `NO_ENCONTRADO`      | El código no existe      | `No encontrado`      | Rojo  | Bip largo |
+| `AGOTADO\|titulo`    | Libro físico con stock 0 | Título / `Sin stock` | Rojo  | Tres bips |
 
 **Conexiones:** LCD I2C (VCC → 5V, GND → GND, SDA → A4, SCL → A5) · LED verde: D8 → 220 ohm → LED → GND · LED rojo: D9 → 220 ohm → LED → GND · zumbador: D10 → positivo, negativo → GND.
 

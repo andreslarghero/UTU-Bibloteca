@@ -1,6 +1,6 @@
 <?php
 // ============================================================
-// STEAM: AVISO AL LECTOR FÍSICO (ARDUINO)
+// SERVICIO STEAM: AVISO AL LECTOR FÍSICO (ARDUINO)
 // La Caja incluye este archivo para avisarle al Arduino el
 // resultado de cada escaneo. PHP no habla con el Arduino: solo
 // escribe una línea en un archivo de texto. El programa
@@ -14,9 +14,10 @@
 // nada y la Caja sigue funcionando igual.
 // ============================================================
 
-// Usa quitar_tildes() de funciones.php. require_once evita cargarlo
-// dos veces cuando la página ya lo trajo desde conexion.php.
-require_once __DIR__ . "/funciones.php";
+// Usa quitar_tildes() de ayudas.php y el modelo de libros. require_once
+// evita cargarlos dos veces cuando el controlador ya los trajo.
+require_once __DIR__ . "/ayudas.php";
+require_once __DIR__ . "/../modelos/libro.php";
 
 // ------------------------------------------------------------
 // CONFIGURACIÓN
@@ -31,8 +32,8 @@ require_once __DIR__ . "/funciones.php";
 //   En la PC del equipo apunta a E:/PROYECTO/steam/puente/.
 // ------------------------------------------------------------
 define("STEAM_ACTIVO", true);
-if (is_file(__DIR__ . "/steam_config_local.php")) {
-    include __DIR__ . "/steam_config_local.php";
+if (is_file(dirname(__DIR__) . "/php/steam_config_local.php")) {
+    include dirname(__DIR__) . "/php/steam_config_local.php";
 }
 if (!defined("STEAM_ARCHIVO_COMANDO")) {
     define("STEAM_ARCHIVO_COMANDO", dirname(__DIR__) . "/steam/puente/comando_steam.txt");
@@ -142,13 +143,7 @@ function steam_avisar_agotado($titulo) {
 // ------------------------------------------------------------
 function steam_es_solo_digital($conexion, $codigo) {
     try {
-        $consulta = mysqli_prepare($conexion, "SELECT formato_fisico FROM libros WHERE codigo_barras = ?");
-        if (!$consulta) {
-            return false;
-        }
-        mysqli_stmt_bind_param($consulta, "s", $codigo);
-        mysqli_stmt_execute($consulta);
-        $libro = mysqli_fetch_assoc(mysqli_stmt_get_result($consulta));
+        $libro = libro_formato_fisico_por_codigo($conexion, $codigo);
 
         return $libro && $libro["formato_fisico"] == 0;
     } catch (Throwable $e) {

@@ -181,8 +181,8 @@ El Arduino **no consulta MySQL**. La Caja hace la consulta, y el resultado viaja
 
 | Archivo | Función |
 |---|---|
-| `php/caja.php` | Después de cada escaneo llama a una función de `steam.php` |
-| `php/steam.php` | Arma el comando y lo escribe en el archivo. Tiene la configuración (ruta y encendido/apagado) |
+| `controladores/caja.php` | Después de cada escaneo llama a una función de `steam.php` |
+| `controladores/steam.php` | Arma el comando y lo escribe en el archivo. Tiene la configuración (ruta y encendido/apagado) |
 | `steam/puente/comando_steam.txt` | Archivo de comando. Lo crea la Caja sola en el primer escaneo |
 | `steam/puente/puente_arduino.py --archivo` | Lee el archivo y envía cada evento nuevo al Arduino |
 
@@ -229,9 +229,9 @@ Al arrancar, el puente toma lo que ya estaba escrito como evento viejo y no lo e
 
 Si la carpeta no existe, no hay permiso de escritura, el archivo está ocupado o el puente está apagado, `steam.php` no hace nada y no muestra errores. La Caja sigue vendiendo igual.
 
-Para apagar el aviso sin tocar la Caja: en `php/steam.php`, poner `STEAM_ACTIVO` en `false`.
+Para apagar el aviso sin tocar la Caja: en `controladores/steam.php`, poner `STEAM_ACTIVO` en `false`.
 
-**Ruta del archivo.** Por defecto, `php/steam.php` calcula la ruta desde su propia ubicación: `<carpeta del proyecto>/steam/puente/comando_steam.txt`. Así funciona al clonar el proyecto en cualquier PC, sin depender de una letra de unidad, y el puente la lee desde su misma carpeta. Si una PC necesita otra ruta, se crea `php/steam_config_local.php` (no se sube a GitHub) con `define("STEAM_ARCHIVO_COMANDO", "...");`. En la PC del equipo ese archivo apunta a `E:/PROYECTO/steam/puente/comando_steam.txt`, que es la configuración con la que se validó la placa física.
+**Ruta del archivo.** Por defecto, `controladores/steam.php` calcula la ruta desde su propia ubicación: `<carpeta del proyecto>/steam/puente/comando_steam.txt`. Así funciona al clonar el proyecto en cualquier PC, sin depender de una letra de unidad, y el puente la lee desde su misma carpeta. Si una PC necesita otra ruta, se crea `php/steam_config_local.php` (no se sube a GitHub) con `define("STEAM_ARCHIVO_COMANDO", "...");`. En la PC del equipo ese archivo apunta a `E:/PROYECTO/steam/puente/comando_steam.txt`, que es la configuración con la que se validó la placa física.
 
 ### Limitaciones conocidas
 

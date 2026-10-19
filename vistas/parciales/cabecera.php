@@ -1,12 +1,14 @@
 <?php
 // ============================================================
-// CABECERA COMÚN DE LAS PÁGINAS
+// VISTA PARCIAL: CABECERA COMÚN DE LAS PÁGINAS
 // Abre el documento HTML, el <head> y el <body>, e incluye el menú.
-// La página que la incluye define antes:
+// El controlador define antes:
 //   $titulo_pagina  texto del título de la pestaña (obligatorio)
 //   $clase_body     clase del <body> (opcional)
 // El pie correspondiente está en pie.php.
 // ============================================================
+// Las ayudas de presentación (precios, portadas, versiones) se cargan aquí.
+require_once __DIR__ . "/../ayudas.php";
 ?>
 <!DOCTYPE html>
 <html lang="es">

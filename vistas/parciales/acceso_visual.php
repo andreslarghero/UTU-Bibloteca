@@ -1,6 +1,6 @@
 <?php
 // ============================================================
-// MITAD VISUAL DE LAS PÁGINAS DE LOGIN Y REGISTRO
+// VISTA PARCIAL: MITAD VISUAL DE LOGIN Y REGISTRO
 // Bloque decorativo que se muestra a la izquierda del formulario
 // en pantallas grandes: fondo oscuro, una composición de tres
 // libros superpuestos y el lema. Los libros quedan quietos (no
@@ -10,9 +10,9 @@
 // usan exactamente el mismo bloque.
 // ============================================================
 
-// Función que dibuja una portada (la imagen o, si el archivo no
+// portada_html() dibuja una portada (la imagen o, si el archivo no
 // estuviera, el reemplazo propio: nunca una imagen rota).
-include_once "portada.php";
+require_once __DIR__ . "/../ayudas.php";
 
 // Las tres portadas de la composición, de atrás hacia adelante.
 // Son archivos del proyecto, de la carpeta img/portadas.
