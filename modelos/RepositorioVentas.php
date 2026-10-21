@@ -130,16 +130,16 @@ class RepositorioVentas implements Repositorio
     }
 
     // Las ventas de ESTE cliente, de la más nueva a la más antigua, con el
-    // nombre del vendedor (LEFT JOIN por si la venta no tiene).
+    // nombre del vendedor. Los datos salen de la vista vw_ventas_detalle (que ya
+    // une la tabla usuarios para el cliente y el vendedor); el filtro por
+    // id_cliente es el que protege las compras de cada persona.
     public function delCliente(int $clienteId): array
     {
         $consulta = $this->pdo->prepare(
-            'SELECT ventas.id, ventas.fecha, ventas.total, ventas.id_cliente, ventas.id_vendedor,
-                    vendedores.nombre AS vendedor
-             FROM ventas
-             LEFT JOIN usuarios AS vendedores ON vendedores.id = ventas.id_vendedor
-             WHERE ventas.id_cliente = ?
-             ORDER BY ventas.fecha DESC, ventas.id DESC');
+            'SELECT id, fecha, total, id_cliente, id_vendedor, vendedor
+             FROM vw_ventas_detalle
+             WHERE id_cliente = ?
+             ORDER BY fecha DESC, id DESC');
         $consulta->execute([$clienteId]);
         return array_map([Venta::class, 'desdeFila'], $consulta->fetchAll());
     }
@@ -149,11 +149,9 @@ class RepositorioVentas implements Repositorio
     public function delClientePorId(int $ventaId, int $clienteId): ?Venta
     {
         $consulta = $this->pdo->prepare(
-            'SELECT ventas.id, ventas.fecha, ventas.total, ventas.id_cliente, ventas.id_vendedor,
-                    vendedores.nombre AS vendedor
-             FROM ventas
-             LEFT JOIN usuarios AS vendedores ON vendedores.id = ventas.id_vendedor
-             WHERE ventas.id = ? AND ventas.id_cliente = ?');
+            'SELECT id, fecha, total, id_cliente, id_vendedor, vendedor
+             FROM vw_ventas_detalle
+             WHERE id = ? AND id_cliente = ?');
         $consulta->execute([$ventaId, $clienteId]);
         $fila = $consulta->fetch();
         if (!$fila) {
@@ -182,16 +180,14 @@ class RepositorioVentas implements Repositorio
     // ---------- Todas las operaciones (solo el bibliotecario) ----------
 
     // Todas las ventas, de la más nueva a la más antigua, con el nombre del
-    // cliente y del vendedor. LEFT JOIN incluye las ventas sin cliente (de mostrador).
+    // cliente y del vendedor (vista vw_ventas_detalle: incluye las ventas sin
+    // cliente, de mostrador).
     public function todos(): array
     {
         $filas = $this->pdo->query(
-            'SELECT ventas.id, ventas.fecha, ventas.total, ventas.id_cliente, ventas.id_vendedor,
-                    clientes.nombre AS cliente, vendedores.nombre AS vendedor
-             FROM ventas
-             LEFT JOIN usuarios AS clientes ON clientes.id = ventas.id_cliente
-             LEFT JOIN usuarios AS vendedores ON vendedores.id = ventas.id_vendedor
-             ORDER BY ventas.fecha DESC, ventas.id DESC')->fetchAll();
+            'SELECT id, fecha, total, id_cliente, id_vendedor, cliente, vendedor
+             FROM vw_ventas_detalle
+             ORDER BY fecha DESC, id DESC')->fetchAll();
         return array_map([Venta::class, 'desdeFila'], $filas);
     }
 
@@ -199,12 +195,9 @@ class RepositorioVentas implements Repositorio
     public function buscar(int $id): ?Venta
     {
         $consulta = $this->pdo->prepare(
-            'SELECT ventas.id, ventas.fecha, ventas.total, ventas.id_cliente, ventas.id_vendedor,
-                    clientes.nombre AS cliente, vendedores.nombre AS vendedor
-             FROM ventas
-             LEFT JOIN usuarios AS clientes ON clientes.id = ventas.id_cliente
-             LEFT JOIN usuarios AS vendedores ON vendedores.id = ventas.id_vendedor
-             WHERE ventas.id = ?');
+            'SELECT id, fecha, total, id_cliente, id_vendedor, cliente, vendedor
+             FROM vw_ventas_detalle
+             WHERE id = ?');
         $consulta->execute([$id]);
         $fila = $consulta->fetch();
         if (!$fila) {

@@ -9,14 +9,16 @@ class Conexion
     // La única conexión (se crea la primera vez que alguien la pide).
     private static ?PDO $pdo = null;
 
-    // Datos de acceso a MySQL (los valores por defecto de XAMPP).
-    // Si tu MySQL usa otro usuario o contraseña, cámbialos aquí.
-    // root sin contraseña es solo para un entorno local: en un servidor
-    // público se usa un usuario con permisos limitados.
+    // Datos de acceso a MySQL. La web NO usa "root": usa la cuenta
+    // 'nexora_app', que se crea con sql/biblioteca.sql (sección "Usuarios y
+    // permisos") y solo puede hacer lo que la aplicación necesita (principio
+    // de mínimo privilegio). Esa contraseña es de demostración para uso local:
+    // hay que cambiarla (en el .sql con ALTER USER y aquí) si el sitio se
+    // instala en un servidor.
     private const SERVIDOR = 'localhost';
     private const BASE = 'biblioteca';
-    private const USUARIO = 'root';
-    private const CLAVE = '';
+    private const USUARIO = 'nexora_app';
+    private const CLAVE = 'Nexora_App_2026';
 
     public static function getConexion(): PDO
     {

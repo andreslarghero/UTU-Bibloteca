@@ -19,25 +19,53 @@
 -- registrados, las ventas, las reseñas y los cambios de stock, y
 -- la base vuelve a quedar con los datos de prueba de abajo.
 --
--- Tablas (en el orden en que se crean):
---   usuarios, categorias, libros, ventas, venta_lineas, resenias
+-- Contenido (en este orden):
+--   1. Base de datos, motor y juego de caracteres.
+--   2. Tablas (DDL): usuarios, categorias, libros, ventas,
+--      venta_lineas, resenias, con sus restricciones y claves.
+--   3. Datos de ejemplo (INSERT).
+--   4. Índices (ALTER TABLE ... ADD INDEX).
+--   5. Vistas: vw_catalogo y vw_ventas_detalle.
+--   6. Usuarios, permisos y roles (CREATE USER, GRANT).
+--
+-- Temas de clase que aplica este script:
+--   DDL: IF [NOT] EXISTS, AUTO_INCREMENT, PRIMARY KEY, NOT NULL,
+--        UNIQUE, DEFAULT, CHECK, ENUM, FOREIGN KEY con acciones
+--        referenciales (RESTRICT, CASCADE), ALTER TABLE.
+--   DML: INSERT de varias filas.
+--   Vistas, usuarios y permisos (mínimo privilegio), roles.
+--   Checklist de backups: motor InnoDB, utf8mb4 y utf8mb4_unicode_ci.
+-- Otros archivos de esta carpeta:
+--   consultas_clase.sql          JOIN, UNION, INTERSECT, EXCEPT, vistas,
+--                                tablas temporales, UPDATE y DELETE.
+--   respaldos/                   copias de seguridad (mysqldump) y checklist.
 -- ============================================================
+
+-- Para importar este archivo hace falta una cuenta con permiso para crear
+-- bases de datos y usuarios (en XAMPP, "root").
 
 -- Crea la base de datos "biblioteca" (si no existe) y la selecciona
 -- para que las siguientes instrucciones se ejecuten dentro de ella.
--- utf8mb4 es el juego de caracteres que permite guardar acentos y eñes.
-CREATE DATABASE IF NOT EXISTS biblioteca CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
+-- utf8mb4 es el juego de caracteres que permite guardar acentos, eñes y emojis
+-- (el "utf8" de MySQL solo guarda 3 bytes por letra). utf8mb4_unicode_ci es la
+-- collation (el orden y la comparación de textos) recomendada.
+-- Todas las tablas usan el motor InnoDB: es el único que admite transacciones y
+-- claves foráneas, que esta web necesita (la caja y las compras usan transacciones).
+CREATE DATABASE IF NOT EXISTS biblioteca CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE biblioteca;
 
 -- ------------------------------------------------------------
--- BORRADO DE TABLAS
--- Se borran en orden: primero las tablas que dependen de otras
--- (por sus claves foráneas) y al final las tablas "padre".
+-- BORRADO DE VISTAS Y TABLAS
+-- Primero las vistas (dependen de las tablas). Después las tablas, en
+-- orden: primero las que dependen de otras (por sus claves foráneas) y al
+-- final las tablas "padre".
 --   resenias      depende de libros y de usuarios
 --   venta_lineas  depende de ventas y de libros
 --   ventas        depende de usuarios
 --   libros        depende de categorias
 -- ------------------------------------------------------------
+DROP VIEW IF EXISTS vw_catalogo;
+DROP VIEW IF EXISTS vw_ventas_detalle;
 DROP TABLE IF EXISTS resenias;
 DROP TABLE IF EXISTS venta_lineas;
 DROP TABLE IF EXISTS ventas;
@@ -58,11 +86,10 @@ CREATE TABLE usuarios (
     nombre VARCHAR(100) NOT NULL,          -- Nombre de la persona
     correo VARCHAR(150) NOT NULL UNIQUE,   -- Correo electrónico; UNIQUE impide repetirlo
     clave VARCHAR(255) NOT NULL,           -- Contraseña cifrada (nunca en texto normal)
-    rol VARCHAR(20) NOT NULL DEFAULT 'cliente',   -- Tipo de usuario: 'cliente' o 'bibliotecario'
+    rol ENUM('cliente', 'bibliotecario') NOT NULL DEFAULT 'cliente',   -- Tipo de usuario: ENUM es una lista cerrada de textos permitidos
     activo TINYINT(1) NOT NULL DEFAULT 1,  -- Baja lógica: 1 = puede iniciar sesión, 0 = dado de baja
-    CONSTRAINT chk_usuarios_rol CHECK (rol IN ('cliente', 'bibliotecario')),   -- Solo se permiten esos dos valores
     CONSTRAINT chk_usuarios_activo CHECK (activo IN (0, 1))                    -- Solo se permite 0 o 1
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ------------------------------------------------------------
 -- USUARIOS DE DEMOSTRACIÓN
@@ -95,7 +122,7 @@ INSERT INTO usuarios (nombre, correo, clave, rol, activo) VALUES
 CREATE TABLE categorias (
     id INT AUTO_INCREMENT PRIMARY KEY,     -- Número único de cada categoría (se asigna solo)
     nombre VARCHAR(50) NOT NULL UNIQUE     -- Nombre de la categoría; UNIQUE impide repetirlo
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Las categorías quedan con los id 1 a 9, en este orden.
 INSERT INTO categorias (nombre) VALUES
@@ -130,14 +157,17 @@ CREATE TABLE libros (
     precio_digital DECIMAL(8,2) NULL,                 -- Precio del formato digital (NULL si no tiene)
     archivo_digital VARCHAR(255) NULL,                -- Nombre del archivo PDF o EPUB guardado en la carpeta "digitales" (NULL si no tiene)
     CONSTRAINT chk_libros_stock CHECK (stock >= 0),    -- El stock nunca puede ser negativo
-    CONSTRAINT fk_libros_categoria FOREIGN KEY (categoria_id) REFERENCES categorias(id),   -- La categoría tiene que existir
+    -- La categoría tiene que existir. ON DELETE RESTRICT: no se puede borrar una categoría que
+    -- tiene libros. ON UPDATE CASCADE: si cambia el id de la categoría, se actualiza aquí.
+    CONSTRAINT fk_libros_categoria FOREIGN KEY (categoria_id) REFERENCES categorias(id)
+        ON DELETE RESTRICT ON UPDATE CASCADE,
     CONSTRAINT chk_libros_formato_fisico CHECK (formato_fisico IN (0, 1)),      -- Solo se permite 0 o 1
     CONSTRAINT chk_libros_formato_digital CHECK (formato_digital IN (0, 1)),    -- Solo se permite 0 o 1
     CONSTRAINT chk_libros_algun_formato CHECK (formato_fisico = 1 OR formato_digital = 1),   -- Todo libro tiene al menos un formato
     CONSTRAINT chk_libros_fisico CHECK (formato_fisico = 0 OR codigo_barras IS NOT NULL),   -- Si es físico, tiene que tener código de barras
     CONSTRAINT chk_libros_digital CHECK (formato_digital = 0 OR (precio_digital IS NOT NULL AND archivo_digital IS NOT NULL)),   -- Si es digital, tiene que tener precio y archivo
     CONSTRAINT chk_libros_precio_digital CHECK (precio_digital IS NULL OR precio_digital >= 0)   -- El precio digital no puede ser negativo
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ------------------------------------------------------------
 -- LIBROS DEL CATÁLOGO
@@ -255,6 +285,9 @@ INSERT INTO libros (titulo, autor, anio, portada, categoria_id, stock, isbn, pre
 -- El cliente o el vendedor pueden quedar vacíos (NULL), por
 -- ejemplo en una venta de mostrador a alguien sin cuenta, pero
 -- no los dos a la vez.
+-- Las claves foráneas usan ON DELETE RESTRICT: no se puede borrar
+-- un usuario que tiene ventas (el historial no se pierde). Los
+-- usuarios se dan de baja (activo = 0) en lugar de borrarse.
 -- ------------------------------------------------------------
 CREATE TABLE ventas (
     id INT AUTO_INCREMENT PRIMARY KEY,           -- Número único de cada venta (se asigna solo)
@@ -262,10 +295,12 @@ CREATE TABLE ventas (
     id_vendedor INT NULL,                        -- Bibliotecario que vendió (id de la tabla usuarios); puede quedar vacío
     fecha DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,   -- Fecha y hora de la venta (se pone sola)
     total DECIMAL(10,2) NOT NULL DEFAULT 0,      -- Importe total de la venta
-    CONSTRAINT fk_ventas_cliente FOREIGN KEY (id_cliente) REFERENCES usuarios(id),     -- El cliente tiene que existir
-    CONSTRAINT fk_ventas_vendedor FOREIGN KEY (id_vendedor) REFERENCES usuarios(id),   -- El vendedor tiene que existir
+    CONSTRAINT fk_ventas_cliente FOREIGN KEY (id_cliente) REFERENCES usuarios(id)      -- El cliente tiene que existir
+        ON DELETE RESTRICT ON UPDATE CASCADE,
+    CONSTRAINT fk_ventas_vendedor FOREIGN KEY (id_vendedor) REFERENCES usuarios(id)    -- El vendedor tiene que existir
+        ON DELETE RESTRICT ON UPDATE CASCADE,
     CONSTRAINT chk_ventas_cliente_o_vendedor CHECK (id_cliente IS NOT NULL OR id_vendedor IS NOT NULL)   -- No pueden faltar los dos
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ------------------------------------------------------------
 -- TABLA VENTA_LINEAS
@@ -273,11 +308,13 @@ CREATE TABLE ventas (
 -- el precio al que se vendió (se guarda aparte del precio del
 -- libro para que la venta no cambie si el libro sube de precio).
 --
--- ON DELETE RESTRICT en las dos claves foráneas:
---   * No se puede borrar un libro que ya fue vendido. Para
---     quitarlo del catálogo se usa la baja lógica (activo = 0).
---   * No se puede borrar una venta que tiene líneas: primero hay
---     que borrar sus líneas a propósito.
+-- Acciones referenciales de las dos claves foráneas:
+--   * libro_id: ON DELETE RESTRICT. No se puede borrar un libro que
+--     ya fue vendido. Para quitarlo del catálogo se usa la baja
+--     lógica (activo = 0).
+--   * venta_id: ON DELETE CASCADE. Las líneas son el "detalle" de la
+--     venta (la "cabecera"): no tienen sentido sin ella, así que al
+--     borrar una venta se borran también sus líneas.
 -- ------------------------------------------------------------
 CREATE TABLE venta_lineas (
     id INT AUTO_INCREMENT PRIMARY KEY,           -- Número único de cada línea (se asigna solo)
@@ -285,13 +322,14 @@ CREATE TABLE venta_lineas (
     libro_id INT NOT NULL,                       -- Libro vendido (id de la tabla libros)
     cantidad INT NOT NULL,                       -- Cuántas copias se vendieron
     precio DECIMAL(8,2) NOT NULL,                -- Precio de cada copia en el momento de la venta
-    formato VARCHAR(10) NOT NULL DEFAULT 'fisico',   -- En qué formato se vendió: 'fisico' o 'digital'
-    CONSTRAINT fk_venta_lineas_venta FOREIGN KEY (venta_id) REFERENCES ventas(id) ON DELETE RESTRICT,
-    CONSTRAINT fk_venta_lineas_libro FOREIGN KEY (libro_id) REFERENCES libros(id) ON DELETE RESTRICT,
+    formato ENUM('fisico', 'digital') NOT NULL DEFAULT 'fisico',   -- En qué formato se vendió (lista cerrada)
+    CONSTRAINT fk_venta_lineas_venta FOREIGN KEY (venta_id) REFERENCES ventas(id)
+        ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT fk_venta_lineas_libro FOREIGN KEY (libro_id) REFERENCES libros(id)
+        ON DELETE RESTRICT ON UPDATE CASCADE,
     CONSTRAINT chk_venta_lineas_cantidad CHECK (cantidad > 0),    -- La cantidad tiene que ser positiva
-    CONSTRAINT chk_venta_lineas_precio CHECK (precio >= 0),       -- El precio no puede ser negativo
-    CONSTRAINT chk_venta_lineas_formato CHECK (formato IN ('fisico', 'digital'))   -- Solo se permiten esos dos formatos
-);
+    CONSTRAINT chk_venta_lineas_precio CHECK (precio >= 0)        -- El precio no puede ser negativo
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ------------------------------------------------------------
 -- VENTAS DE PRUEBA
@@ -313,6 +351,8 @@ INSERT INTO venta_lineas (venta_id, libro_id, cantidad, precio, formato) VALUES
 -- TABLA RESENIAS
 -- Guarda las valoraciones (1 a 5 estrellas) y comentarios que
 -- los usuarios dejan en cada libro.
+-- Una reseña depende del libro y del usuario: ON DELETE CASCADE
+-- (si se borra el libro o el usuario, se borran sus reseñas).
 -- ------------------------------------------------------------
 CREATE TABLE resenias (
     id INT AUTO_INCREMENT PRIMARY KEY,           -- Número único de cada reseña
@@ -322,10 +362,12 @@ CREATE TABLE resenias (
     comentario TEXT,                             -- Opinión escrita del usuario
     fecha DATETIME DEFAULT CURRENT_TIMESTAMP,    -- Fecha en que se escribió (se pone sola)
     UNIQUE (libro_id, usuario_id),               -- Cada usuario solo puede tener una reseña por libro
-    CONSTRAINT fk_resenias_libro FOREIGN KEY (libro_id) REFERENCES libros(id),         -- El libro tiene que existir
-    CONSTRAINT fk_resenias_usuario FOREIGN KEY (usuario_id) REFERENCES usuarios(id),   -- El usuario tiene que existir
+    CONSTRAINT fk_resenias_libro FOREIGN KEY (libro_id) REFERENCES libros(id)          -- El libro tiene que existir
+        ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT fk_resenias_usuario FOREIGN KEY (usuario_id) REFERENCES usuarios(id)    -- El usuario tiene que existir
+        ON DELETE CASCADE ON UPDATE CASCADE,
     CONSTRAINT chk_resenias_puntuacion CHECK (puntuacion BETWEEN 1 AND 5)              -- La puntuación va de 1 a 5
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ------------------------------------------------------------
 -- RESEÑAS DE PRUEBA
@@ -335,3 +377,100 @@ CREATE TABLE resenias (
 INSERT INTO resenias (libro_id, usuario_id, puntuacion, comentario) VALUES
 (2, 2, 5, 'Un clásico que vale la pena leer. Muy divertido.'),
 (3, 2, 4, 'Una historia que hace pensar. Muy recomendable.');
+
+-- ============================================================
+-- ÍNDICES (ALTER TABLE ... ADD INDEX)
+-- ALTER TABLE cambia la estructura de una tabla ya creada. Aquí agrega
+-- dos índices secundarios (en DESCRIBE aparecen como "MUL"): aceleran
+-- las búsquedas y los ordenamientos que usa la web.
+--   idx_libros_titulo  el catálogo y "Gestionar libros" ordenan por título.
+--   idx_ventas_fecha   "Mis compras" y "Operaciones" ordenan por fecha.
+-- Las claves foráneas y los campos UNIQUE ya crean su propio índice.
+-- ============================================================
+ALTER TABLE libros ADD INDEX idx_libros_titulo (titulo);
+ALTER TABLE ventas ADD INDEX idx_ventas_fecha (fecha);
+
+-- ============================================================
+-- VISTAS
+-- Una vista es una consulta guardada con un nombre: no guarda datos
+-- propios, cada vez que se consulta se ejecuta el SELECT que la define.
+-- Convención: el nombre empieza con "vw_". Se escriben las columnas una
+-- por una (sin SELECT *) para que un cambio en la tabla no cambie la vista.
+-- Las dos son vistas "complejas" (usan JOIN y la primera GROUP BY): sirven
+-- para consultar, no para modificar datos.
+-- ============================================================
+
+-- Catálogo: los libros activos con el nombre de su categoría, la valoración
+-- media y la cantidad de reseñas (LEFT JOIN para incluir libros sin reseñas).
+-- No incluye el nombre del archivo digital: la vista oculta esa columna.
+-- La usa la página del catálogo.
+CREATE VIEW vw_catalogo AS
+SELECT libros.id, libros.titulo, libros.autor, libros.anio, libros.portada, libros.descripcion,
+       libros.categoria_id, categorias.nombre AS categoria, libros.isbn, libros.precio,
+       libros.codigo_barras, libros.stock, libros.activo, libros.formato_fisico,
+       libros.formato_digital, libros.precio_digital,
+       ROUND(AVG(resenias.puntuacion), 1) AS media, COUNT(resenias.id) AS total_resenas
+FROM libros
+JOIN categorias ON categorias.id = libros.categoria_id
+LEFT JOIN resenias ON resenias.libro_id = libros.id
+WHERE libros.activo = 1
+GROUP BY libros.id, libros.titulo, libros.autor, libros.anio, libros.portada, libros.descripcion,
+         libros.categoria_id, categorias.nombre, libros.isbn, libros.precio, libros.codigo_barras,
+         libros.stock, libros.activo, libros.formato_fisico, libros.formato_digital, libros.precio_digital;
+
+-- Ventas con el nombre del cliente y del vendedor. La tabla usuarios se une
+-- dos veces (una para cada uno), por eso lleva dos nombres. LEFT JOIN incluye
+-- las ventas sin cliente (de mostrador) o sin vendedor (compras por la web).
+-- La usan "Mis compras" y "Operaciones" (cada consulta agrega su propio filtro).
+CREATE VIEW vw_ventas_detalle AS
+SELECT ventas.id, ventas.fecha, ventas.total, ventas.id_cliente, ventas.id_vendedor,
+       clientes.nombre AS cliente, vendedores.nombre AS vendedor
+FROM ventas
+LEFT JOIN usuarios AS clientes ON clientes.id = ventas.id_cliente
+LEFT JOIN usuarios AS vendedores ON vendedores.id = ventas.id_vendedor;
+
+-- ============================================================
+-- USUARIOS Y PERMISOS (principio de mínimo privilegio)
+-- La web NO se conecta como "root": usa una cuenta propia que solo puede
+-- hacer lo que la aplicación necesita. Un usuario nace sin permisos; cada
+-- GRANT agrega uno. Cada cuenta es "usuario"@"host": 'localhost' significa
+-- que solo puede conectarse desde la misma computadora.
+-- Las contraseñas de abajo son para uso local y de demostración: hay que
+-- cambiarlas si el sitio se instala en un servidor.
+-- ============================================================
+
+-- 1. Cuenta de la aplicación web (config/Conexion.php).
+CREATE USER IF NOT EXISTS 'nexora_app'@'localhost' IDENTIFIED BY 'Nexora_App_2026';
+ALTER USER 'nexora_app'@'localhost' IDENTIFIED BY 'Nexora_App_2026';
+
+-- Puede leer todo (tablas y vistas)...
+GRANT SELECT ON biblioteca.* TO 'nexora_app'@'localhost';
+-- ...y escribir solo en lo que la web escribe:
+GRANT INSERT, UPDATE ON biblioteca.usuarios TO 'nexora_app'@'localhost';       -- registro, perfil y gestión de usuarios
+GRANT INSERT, UPDATE ON biblioteca.libros TO 'nexora_app'@'localhost';         -- gestión de libros, stock y ventas
+GRANT INSERT ON biblioteca.ventas TO 'nexora_app'@'localhost';                 -- caja y compras digitales
+GRANT INSERT ON biblioteca.venta_lineas TO 'nexora_app'@'localhost';           -- caja y compras digitales
+GRANT INSERT, UPDATE, DELETE ON biblioteca.resenias TO 'nexora_app'@'localhost';   -- reseñas (la única tabla donde se borra)
+-- No tiene CREATE, DROP, ALTER ni GRANT: la web no puede cambiar la estructura de la base.
+-- Tampoco puede escribir en categorias, ni borrar usuarios, libros o ventas.
+
+-- 2. Cuenta de solo consulta, que ve únicamente las vistas (por ejemplo, para
+-- reportes). No necesita acceso directo a las tablas: ve lo que la vista devuelve.
+-- Se usa un ROL: un conjunto de permisos que se le asigna a varios usuarios.
+CREATE USER IF NOT EXISTS 'nexora_consulta'@'localhost' IDENTIFIED BY 'Nexora_Consulta_2026';
+ALTER USER 'nexora_consulta'@'localhost' IDENTIFIED BY 'Nexora_Consulta_2026';
+CREATE ROLE IF NOT EXISTS 'lector_vistas';
+GRANT SELECT ON biblioteca.vw_catalogo TO 'lector_vistas';
+GRANT SELECT ON biblioteca.vw_ventas_detalle TO 'lector_vistas';
+GRANT 'lector_vistas' TO 'nexora_consulta'@'localhost';
+-- En MariaDB (XAMPP) el rol por defecto se indica así. En MySQL 8 la sentencia es:
+--   SET DEFAULT ROLE 'lector_vistas' TO 'nexora_consulta'@'localhost';
+SET DEFAULT ROLE 'lector_vistas' FOR 'nexora_consulta'@'localhost';
+
+FLUSH PRIVILEGES;
+
+-- Para auditar los permisos:
+--   SHOW GRANTS FOR 'nexora_app'@'localhost';
+--   SHOW GRANTS FOR 'nexora_consulta'@'localhost';
+--   SHOW GRANTS FOR 'lector_vistas';
+--   SELECT user, host FROM mysql.user;

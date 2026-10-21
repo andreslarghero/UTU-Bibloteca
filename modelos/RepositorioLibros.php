@@ -36,8 +36,9 @@ class RepositorioLibros implements Repositorio
         return $this->aObjeto($consulta->fetch());
     }
 
-    // El catálogo: libros activos con su categoría, su valoración media y el
-    // número de reseñas (LEFT JOIN para incluir libros sin reseñas).
+    // El catálogo: los libros activos con su categoría, su valoración media y
+    // el número de reseñas. Los datos salen de la vista vw_catalogo (que ya hace
+    // el JOIN con categorias y el LEFT JOIN con resenias); aquí solo se filtra.
     //  - Búsqueda: los % permiten encontrar el texto en cualquier parte del
     //    título o del autor. Con "" queda "%%", que coincide con todos.
     //  - Categoría: "? = 0" hace que con 0 (todas) no se filtre por categoría.
@@ -45,16 +46,10 @@ class RepositorioLibros implements Repositorio
     {
         $texto = '%' . $buscar . '%';
         $consulta = $this->pdo->prepare(
-            'SELECT libros.*, categorias.nombre AS categoria,
-                    ROUND(AVG(resenias.puntuacion), 1) AS media, COUNT(resenias.id) AS total_resenas
-             FROM libros
-             JOIN categorias ON categorias.id = libros.categoria_id
-             LEFT JOIN resenias ON resenias.libro_id = libros.id
-             WHERE libros.activo = 1
-               AND (libros.titulo LIKE ? OR libros.autor LIKE ?)
-               AND (? = 0 OR libros.categoria_id = ?)
-             GROUP BY libros.id
-             ORDER BY libros.id');
+            'SELECT * FROM vw_catalogo
+             WHERE (titulo LIKE ? OR autor LIKE ?)
+               AND (? = 0 OR categoria_id = ?)
+             ORDER BY id');
         $consulta->execute([$texto, $texto, $categoria, $categoria]);
         return array_map([$this, 'aObjeto'], $consulta->fetchAll());
     }

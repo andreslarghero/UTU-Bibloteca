@@ -42,3 +42,6 @@ venv/
 # Editores
 .idea/
 .vscode/
+
+# Copias de seguridad generadas por sql/respaldos/respaldar.bat
+sql/respaldos/copias/
