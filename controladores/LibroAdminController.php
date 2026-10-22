@@ -1,7 +1,6 @@
 <?php
 require_once __DIR__ . '/Controller.php';
 require_once __DIR__ . '/../modelos/RepositorioLibros.php';
-require_once __DIR__ . '/../modelos/RepositorioCategorias.php';
 require_once __DIR__ . '/../modelos/ArchivoDigital.php';
 
 // ============================================================
@@ -20,13 +19,11 @@ require_once __DIR__ . '/../modelos/ArchivoDigital.php';
 class LibroAdminController extends Controller
 {
     private RepositorioLibros $libros;
-    private RepositorioCategorias $categorias;
 
     public function __construct()
     {
         parent::__construct();
         $this->libros = new RepositorioLibros();
-        $this->categorias = new RepositorioCategorias();
     }
 
     // ---------- Pantalla ----------
@@ -62,7 +59,7 @@ class LibroAdminController extends Controller
             'libro' => $libro,
             'tieneArchivo' => $tieneArchivo,
             'errores' => $errores,
-            'categorias' => $this->categorias->todos(),
+            'categorias' => $this->libros->categorias(),
             'mensaje' => $mensaje,
             'lista' => $this->libros->todos(),
         ], 'libroadmin', 'Gestión de libros');
@@ -95,7 +92,7 @@ class LibroAdminController extends Controller
             'anio' => $this->post('anio'),
             'portada' => $this->post('portada'),
             'descripcion' => $this->post('descripcion'),
-            'categoria_id' => (int) ($_POST['categoria_id'] ?? 0),
+            'categoria' => $this->post('categoria'),
             'isbn' => $this->post('isbn'),
             'precio' => str_replace(',', '.', $this->post('precio')),
             'codigo_barras' => $this->post('codigo_barras'),
@@ -105,6 +102,10 @@ class LibroAdminController extends Controller
             'precio_digital' => str_replace(',', '.', $this->post('precio_digital')),
         ]);
         $errores = [];
+
+        // Si la categoría ya existe (aunque se escriba distinto: "ficcion"), se usa
+        // tal cual está guardada para que no haya dos grafías de la misma.
+        $libro->setCategoria($this->libros->nombreCategoria($libro->getCategoria()));
 
         // Nombre del archivo digital que el libro ya tiene guardado (si tiene). Se lee
         // de la base, nunca del formulario.
@@ -122,7 +123,7 @@ class LibroAdminController extends Controller
         }
 
         // Las reglas del libro las revisa la propia clase Libro.
-        $errores = array_merge($errores, $libro->validar($this->libros, $this->categorias));
+        $errores = array_merge($errores, $libro->validar($this->libros));
 
         // ---------- Formato digital: precio y archivo ----------
         // $subida queda con los datos del archivo nuevo si se envió uno válido.

@@ -5,7 +5,7 @@
 -- prueba que necesita la web.
 --
 -- Cumple la función de "schema.sql": contiene la creación del
--- esquema (6 tablas con sus claves y restricciones) y los datos
+-- esquema (5 tablas con sus claves y restricciones) y los datos
 -- iniciales.
 --
 -- Es una INSTALACIÓN LIMPIA DE DEMOSTRACIÓN. Trae el catálogo
@@ -21,8 +21,8 @@
 --
 -- Contenido (en este orden):
 --   1. Base de datos, motor y juego de caracteres.
---   2. Tablas (DDL): usuarios, categorias, libros, ventas,
---      venta_lineas, resenias, con sus restricciones y claves.
+--   2. Tablas (DDL): usuarios, libros, ventas, venta_lineas, resenias,
+--      con sus restricciones y claves. La categoría es una columna de libros.
 --   3. Datos de ejemplo (INSERT).
 --   4. Índices (ALTER TABLE ... ADD INDEX).
 --   5. Vistas: vw_catalogo y vw_ventas_detalle.
@@ -62,7 +62,7 @@ USE biblioteca;
 --   resenias      depende de libros y de usuarios
 --   venta_lineas  depende de ventas y de libros
 --   ventas        depende de usuarios
---   libros        depende de categorias
+-- (categorias ya no existe: se borra por si la base venía del esquema anterior.)
 -- ------------------------------------------------------------
 DROP VIEW IF EXISTS vw_catalogo;
 DROP VIEW IF EXISTS vw_ventas_detalle;
@@ -116,28 +116,12 @@ INSERT INTO usuarios (nombre, correo, clave, rol, activo) VALUES
 -- en "Gestionar usuarios".
 
 -- ------------------------------------------------------------
--- TABLA CATEGORIAS
--- Lista de categorías (géneros) a las que puede pertenecer un libro.
--- ------------------------------------------------------------
-CREATE TABLE categorias (
-    id INT AUTO_INCREMENT PRIMARY KEY,     -- Número único de cada categoría (se asigna solo)
-    nombre VARCHAR(50) NOT NULL UNIQUE     -- Nombre de la categoría; UNIQUE impide repetirlo
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
--- Las categorías quedan con los id 1 a 9, en este orden.
-INSERT INTO categorias (nombre) VALUES
-('Ciencia ficción'),   -- 1
-('Distopía'),          -- 2
-('Fábula'),            -- 3
-('Fantasía'),          -- 4
-('Ficción'),           -- 5
-('Novela'),            -- 6
-('Novela clásica'),    -- 7
-('Realismo mágico'),   -- 8
-('Romance');           -- 9
-
--- ------------------------------------------------------------
 -- TABLA LIBROS
+-- La categoría (género) es un dato del propio libro: una columna de texto.
+-- Una categoría no tiene otros datos (solo su nombre), por eso no necesita
+-- una tabla aparte para cumplir la 3FN. Las categorías de demostración son:
+-- Ciencia ficción, Distopía, Fábula, Fantasía, Ficción, Novela,
+-- Novela clásica, Realismo mágico y Romance.
 -- ------------------------------------------------------------
 CREATE TABLE libros (
     id INT AUTO_INCREMENT PRIMARY KEY,     -- Número único de cada libro (se asigna solo)
@@ -145,7 +129,7 @@ CREATE TABLE libros (
     autor VARCHAR(100) NOT NULL,           -- Autor del libro
     anio INT,                              -- Año de publicación
     portada VARCHAR(255),                  -- Portada: ruta del archivo en el proyecto (img/portadas/...)
-    categoria_id INT NOT NULL,             -- Categoría del libro (id de la tabla categorias)
+    categoria VARCHAR(50) NOT NULL,        -- Categoría (género) del libro, escrita como texto; el catálogo arma su filtro con las que hay
     stock INT NOT NULL DEFAULT 0,          -- Copias del formato físico (0 = agotado)
     isbn VARCHAR(20) UNIQUE,               -- ISBN del libro; puede quedar vacío (NULL), pero no repetirse
     precio DECIMAL(8,2) NOT NULL DEFAULT 0,       -- Precio del formato físico
@@ -157,10 +141,7 @@ CREATE TABLE libros (
     precio_digital DECIMAL(8,2) NULL,                 -- Precio del formato digital (NULL si no tiene)
     archivo_digital VARCHAR(255) NULL,                -- Nombre del archivo PDF o EPUB guardado en la carpeta "digitales" (NULL si no tiene)
     CONSTRAINT chk_libros_stock CHECK (stock >= 0),    -- El stock nunca puede ser negativo
-    -- La categoría tiene que existir. ON DELETE RESTRICT: no se puede borrar una categoría que
-    -- tiene libros. ON UPDATE CASCADE: si cambia el id de la categoría, se actualiza aquí.
-    CONSTRAINT fk_libros_categoria FOREIGN KEY (categoria_id) REFERENCES categorias(id)
-        ON DELETE RESTRICT ON UPDATE CASCADE,
+    CONSTRAINT chk_libros_categoria CHECK (CHAR_LENGTH(TRIM(categoria)) > 0),   -- La categoría no puede quedar vacía
     CONSTRAINT chk_libros_formato_fisico CHECK (formato_fisico IN (0, 1)),      -- Solo se permite 0 o 1
     CONSTRAINT chk_libros_formato_digital CHECK (formato_digital IN (0, 1)),    -- Solo se permite 0 o 1
     CONSTRAINT chk_libros_algun_formato CHECK (formato_fisico = 1 OR formato_digital = 1),   -- Todo libro tiene al menos un formato
@@ -186,26 +167,26 @@ CREATE TABLE libros (
 -- Quedan solo en formato físico (los valores por defecto:
 -- formato_fisico = 1 y formato_digital = 0).
 -- ------------------------------------------------------------
-INSERT INTO libros (titulo, autor, anio, portada, categoria_id, stock, isbn, precio, codigo_barras, descripcion) VALUES
-('Cien años de soledad', 'Gabriel García Márquez', 1967, 'img/portadas/cien-anos-de-soledad.webp', 8, 5, '9780307474728', 650.00, '9780307474728',
+INSERT INTO libros (titulo, autor, anio, portada, categoria, stock, isbn, precio, codigo_barras, descripcion) VALUES
+('Cien años de soledad', 'Gabriel García Márquez', 1967, 'img/portadas/cien-anos-de-soledad.webp', 'Realismo mágico', 5, '9780307474728', 650.00, '9780307474728',
  'La historia de siete generaciones de la familia Buendía en el pueblo ficticio de Macondo, desde su fundación hasta su desaparición. Una de las obras más importantes de la literatura latinoamericana.'),
-('Don Quijote de la Mancha', 'Miguel de Cervantes', 1605, 'img/portadas/don-quijote-de-la-mancha.webp', 7, 3, '9780060934347', 890.00, '9780060934347',
+('Don Quijote de la Mancha', 'Miguel de Cervantes', 1605, 'img/portadas/don-quijote-de-la-mancha.webp', 'Novela clásica', 3, '9780060934347', 890.00, '9780060934347',
  'Un hidalgo que ha leído demasiados libros de caballerías decide convertirse en caballero andante y recorre España junto a su escudero Sancho Panza. Considerada la primera novela moderna.'),
-('1984', 'George Orwell', 1949, 'img/portadas/1984.webp', 2, 4, '9780451524935', 590.00, '9780451524935',
+('1984', 'George Orwell', 1949, 'img/portadas/1984.webp', 'Distopía', 4, '9780451524935', 590.00, '9780451524935',
  'En un estado totalitario vigilado por el Gran Hermano, Winston Smith trabaja reescribiendo la historia hasta que empieza a cuestionar el sistema. Una advertencia sobre el control y la manipulación.'),
-('El principito', 'Antoine de Saint-Exupéry', 1943, 'img/portadas/el-principito.webp', 3, 6, '9780156012195', 390.00, '9780156012195',
+('El principito', 'Antoine de Saint-Exupéry', 1943, 'img/portadas/el-principito.webp', 'Fábula', 6, '9780156012195', 390.00, '9780156012195',
  'Un aviador perdido en el desierto conoce a un pequeño príncipe llegado de otro planeta. A través de sus viajes, el libro reflexiona sobre la amistad, el amor y la forma de ver el mundo de los adultos.'),
-('Harry Potter y la piedra filosofal', 'J. K. Rowling', 1997, 'img/portadas/harry-potter-y-la-piedra-filosofal.webp', 4, 0, '9780590353427', 750.00, '9780590353427',
+('Harry Potter y la piedra filosofal', 'J. K. Rowling', 1997, 'img/portadas/harry-potter-y-la-piedra-filosofal.webp', 'Fantasía', 0, '9780590353427', 750.00, '9780590353427',
  'Harry descubre en su undécimo cumpleaños que es un mago y entra en el colegio Hogwarts, donde hace amigos, aprende magia y se enfrenta al misterio de la piedra filosofal.'),
-('El hobbit', 'J. R. R. Tolkien', 1937, 'img/portadas/el-hobbit.webp', 4, 2, '9780547928227', 690.00, '9780547928227',
+('El hobbit', 'J. R. R. Tolkien', 1937, 'img/portadas/el-hobbit.webp', 'Fantasía', 2, '9780547928227', 690.00, '9780547928227',
  'Bilbo Bolsón, un hobbit tranquilo, se une a un mago y a trece enanos en un viaje para recuperar un tesoro custodiado por el dragón Smaug.'),
-('Orgullo y prejuicio', 'Jane Austen', 1813, 'img/portadas/orgullo-y-prejuicio.webp', 9, 3, '9780141439518', 490.00, '9780141439518',
+('Orgullo y prejuicio', 'Jane Austen', 1813, 'img/portadas/orgullo-y-prejuicio.webp', 'Romance', 3, '9780141439518', 490.00, '9780141439518',
  'Elizabeth Bennet y el señor Darcy superan sus primeras impresiones y sus diferencias sociales en la Inglaterra rural del siglo XIX.'),
-('El alquimista', 'Paulo Coelho', 1988, 'img/portadas/el-alquimista.webp', 5, 1, '9780062315007', 550.00, '9780062315007',
+('El alquimista', 'Paulo Coelho', 1988, 'img/portadas/el-alquimista.webp', 'Ficción', 1, '9780062315007', 550.00, '9780062315007',
  'Santiago, un joven pastor andaluz, viaja hasta Egipto en busca de un tesoro que vio en sueños y aprende a seguir su propia leyenda personal.'),
-('Fahrenheit 451', 'Ray Bradbury', 1953, 'img/portadas/fahrenheit-451.webp', 1, 0, '9781451673319', 620.00, '9781451673319',
+('Fahrenheit 451', 'Ray Bradbury', 1953, 'img/portadas/fahrenheit-451.webp', 'Ciencia ficción', 0, '9781451673319', 620.00, '9781451673319',
  'En una sociedad donde los libros están prohibidos, el bombero Guy Montag se encarga de quemarlos, hasta que empieza a preguntarse qué contienen.'),
-('Matar a un ruiseñor', 'Harper Lee', 1960, 'img/portadas/matar-a-un-ruisenor.webp', 6, 4, '9780061120084', 580.00, '9780061120084',
+('Matar a un ruiseñor', 'Harper Lee', 1960, 'img/portadas/matar-a-un-ruisenor.webp', 'Novela', 4, '9780061120084', 580.00, '9780061120084',
  'Narrada por la pequeña Scout Finch, cuenta cómo su padre, el abogado Atticus Finch, defiende a un hombre negro acusado injustamente en el sur de Estados Unidos.');
 
 -- ------------------------------------------------------------
@@ -222,8 +203,8 @@ INSERT INTO libros (titulo, autor, anio, portada, categoria_id, stock, isbn, pre
 --
 -- SEGUNDO BLOQUE (id 11): libro digital de prueba.
 -- ------------------------------------------------------------
-INSERT INTO libros (titulo, autor, anio, portada, categoria_id, stock, isbn, precio, codigo_barras, descripcion, activo, formato_fisico, formato_digital, precio_digital, archivo_digital) VALUES
-('Libro Digital de Prueba', 'Proyecto Biblioteca Digital', NULL, NULL, 5, 0, NULL, 0, NULL,
+INSERT INTO libros (titulo, autor, anio, portada, categoria, stock, isbn, precio, codigo_barras, descripcion, activo, formato_fisico, formato_digital, precio_digital, archivo_digital) VALUES
+('Libro Digital de Prueba', 'Proyecto Biblioteca Digital', NULL, NULL, 'Ficción', 0, NULL, 0, NULL,
  'Libro de muestra creado para el proyecto. Sirve para demostrar la compra y la descarga de libros digitales. No es un libro real.', 1, 0, 1, 300.00, 'libro_c5c0d7a1bcc430e9a4408df25da84966.pdf');
 
 -- ------------------------------------------------------------
@@ -231,26 +212,26 @@ INSERT INTO libros (titulo, autor, anio, portada, categoria_id, stock, isbn, pre
 -- Igual que los primeros: el código de barras es el ISBN. Hay
 -- stocks variados y uno agotado (Drácula, stock 0).
 -- ------------------------------------------------------------
-INSERT INTO libros (titulo, autor, anio, portada, categoria_id, stock, isbn, precio, codigo_barras, descripcion, activo, formato_fisico, formato_digital, precio_digital, archivo_digital) VALUES
-('Crónica de una muerte anunciada', 'Gabriel García Márquez', 1981, 'img/portadas/cronica-de-una-muerte-anunciada.webp', 6, 5, '9781400034956', 480.00, '9781400034956',
+INSERT INTO libros (titulo, autor, anio, portada, categoria, stock, isbn, precio, codigo_barras, descripcion, activo, formato_fisico, formato_digital, precio_digital, archivo_digital) VALUES
+('Crónica de una muerte anunciada', 'Gabriel García Márquez', 1981, 'img/portadas/cronica-de-una-muerte-anunciada.webp', 'Novela', 5, '9781400034956', 480.00, '9781400034956',
  'En un pueblo del Caribe todos saben que van a matar a Santiago Nasar, pero nadie lo impide. La novela reconstruye, como una investigación, las horas previas al crimen.', 1, 1, 0, NULL, NULL),
-('Rayuela', 'Julio Cortázar', 1963, 'img/portadas/rayuela.webp', 6, 3, '9788437604572', 720.00, '9788437604572',
+('Rayuela', 'Julio Cortázar', 1963, 'img/portadas/rayuela.webp', 'Novela', 3, '9788437604572', 720.00, '9788437604572',
  'La historia de Horacio Oliveira entre París y Buenos Aires, contada en capítulos que se pueden leer en más de un orden. Una de las novelas más originales de la literatura en español.', 1, 1, 0, NULL, NULL),
-('La metamorfosis', 'Franz Kafka', 1915, 'img/portadas/la-metamorfosis.webp', 5, 8, '9780553213690', 350.00, '9780553213690',
+('La metamorfosis', 'Franz Kafka', 1915, 'img/portadas/la-metamorfosis.webp', 'Ficción', 8, '9780553213690', 350.00, '9780553213690',
  'Gregorio Samsa despierta una mañana convertido en un enorme insecto. Su familia y él mismo deben aprender a convivir con esa transformación.', 1, 1, 0, NULL, NULL),
-('El retrato de Dorian Gray', 'Oscar Wilde', 1890, 'img/portadas/el-retrato-de-dorian-gray.webp', 7, 4, '9780141439570', 520.00, '9780141439570',
+('El retrato de Dorian Gray', 'Oscar Wilde', 1890, 'img/portadas/el-retrato-de-dorian-gray.webp', 'Novela clásica', 4, '9780141439570', 520.00, '9780141439570',
  'Un joven desea conservar para siempre su belleza y es su retrato el que envejece y refleja sus actos. Una reflexión sobre la vanidad y la conciencia.', 1, 1, 0, NULL, NULL),
-('Drácula', 'Bram Stoker', 1897, 'img/portadas/dracula.webp', 7, 0, '9780141439846', 560.00, '9780141439846',
+('Drácula', 'Bram Stoker', 1897, 'img/portadas/dracula.webp', 'Novela clásica', 0, '9780141439846', 560.00, '9780141439846',
  'A través de diarios y cartas se cuenta la llegada del conde Drácula a Inglaterra y la lucha de un grupo de personas por detenerlo. El clásico de las novelas de vampiros.', 1, 1, 0, NULL, NULL),
-('Frankenstein', 'Mary Shelley', 1818, 'img/portadas/frankenstein.webp', 1, 6, '9780141439471', 540.00, '9780141439471',
+('Frankenstein', 'Mary Shelley', 1818, 'img/portadas/frankenstein.webp', 'Ciencia ficción', 6, '9780141439471', 540.00, '9780141439471',
  'El científico Víctor Frankenstein da vida a una criatura y luego la abandona. Considerada una de las primeras novelas de ciencia ficción.', 1, 1, 0, NULL, NULL),
-('Los juegos del hambre', 'Suzanne Collins', 2008, 'img/portadas/los-juegos-del-hambre.webp', 2, 10, '9780439023528', 690.00, '9780439023528',
+('Los juegos del hambre', 'Suzanne Collins', 2008, 'img/portadas/los-juegos-del-hambre.webp', 'Distopía', 10, '9780439023528', 690.00, '9780439023528',
  'En un país dividido en distritos, Katniss Everdeen ocupa el lugar de su hermana en una competencia televisada en la que solo puede quedar un sobreviviente.', 1, 1, 0, NULL, NULL),
-('El nombre del viento', 'Patrick Rothfuss', 2007, 'img/portadas/el-nombre-del-viento.webp', 4, 2, '9780756404741', 850.00, '9780756404741',
+('El nombre del viento', 'Patrick Rothfuss', 2007, 'img/portadas/el-nombre-del-viento.webp', 'Fantasía', 2, '9780756404741', 850.00, '9780756404741',
  'Kvothe, músico, mago y aventurero, cuenta su propia historia: su infancia entre artistas ambulantes, sus años en la Universidad y el origen de su leyenda.', 1, 1, 0, NULL, NULL),
-('La sombra del viento', 'Carlos Ruiz Zafón', 2001, 'img/portadas/la-sombra-del-viento.webp', 6, 7, '9780143034902', 780.00, '9780143034902',
+('La sombra del viento', 'Carlos Ruiz Zafón', 2001, 'img/portadas/la-sombra-del-viento.webp', 'Novela', 7, '9780143034902', 780.00, '9780143034902',
  'En la Barcelona de posguerra, el joven Daniel encuentra un libro en el Cementerio de los Libros Olvidados y descubre que alguien está destruyendo todas las obras de su autor.', 1, 1, 0, NULL, NULL),
-('Rebelión en la granja', 'George Orwell', 1945, 'img/portadas/rebelion-en-la-granja.webp', 3, 1, '9780451526342', 420.00, '9780451526342',
+('Rebelión en la granja', 'George Orwell', 1945, 'img/portadas/rebelion-en-la-granja.webp', 'Fábula', 1, '9780451526342', 420.00, '9780451526342',
  'Los animales de una granja expulsan a los humanos para gobernarse solos, pero poco a poco los cerdos se quedan con el poder. Una fábula sobre la corrupción de los ideales.', 1, 1, 0, NULL, NULL);
 
 -- ------------------------------------------------------------
@@ -258,33 +239,36 @@ INSERT INTO libros (titulo, autor, anio, portada, categoria_id, stock, isbn, pre
 -- Son obras clásicas de dominio público, usadas solo como datos
 -- del catálogo. Sus archivos son los PDF de demostración.
 -- ------------------------------------------------------------
-INSERT INTO libros (titulo, autor, anio, portada, categoria_id, stock, isbn, precio, codigo_barras, descripcion, activo, formato_fisico, formato_digital, precio_digital, archivo_digital) VALUES
-('La Odisea', 'Homero', NULL, NULL, 7, 0, NULL, 0, NULL,
+INSERT INTO libros (titulo, autor, anio, portada, categoria, stock, isbn, precio, codigo_barras, descripcion, activo, formato_fisico, formato_digital, precio_digital, archivo_digital) VALUES
+('La Odisea', 'Homero', NULL, NULL, 'Novela clásica', 0, NULL, 0, NULL,
  'El largo viaje de regreso de Odiseo a Ítaca después de la guerra de Troya. Edición digital de demostración.', 1, 0, 1, 180.00, 'libro_e7b6252be74fa26954bb2594f3902a93.pdf'),
-('Lazarillo de Tormes', 'Anónimo', 1554, NULL, 7, 0, NULL, 0, NULL,
+('Lazarillo de Tormes', 'Anónimo', 1554, NULL, 'Novela clásica', 0, NULL, 0, NULL,
  'Lázaro cuenta, con humor e ironía, su vida al servicio de distintos amos. La primera novela picaresca. Edición digital de demostración.', 1, 0, 1, 150.00, 'libro_48d13210ec36c63e16e157b3740775fd.pdf'),
-('Martín Fierro', 'José Hernández', 1872, NULL, 5, 0, NULL, 0, NULL,
+('Martín Fierro', 'José Hernández', 1872, NULL, 'Ficción', 0, NULL, 0, NULL,
  'Poema narrativo sobre la vida del gaucho Martín Fierro, obligado a dejar su hogar. Obra fundamental de la literatura rioplatense. Edición digital de demostración.', 1, 0, 1, 160.00, 'libro_9299340935913ba14e628433fa68b438.pdf'),
-('La vuelta al mundo en ochenta días', 'Julio Verne', 1872, NULL, 6, 0, NULL, 0, NULL,
+('La vuelta al mundo en ochenta días', 'Julio Verne', 1872, NULL, 'Novela', 0, NULL, 0, NULL,
  'Phileas Fogg apuesta que puede dar la vuelta al mundo en ochenta días y parte de Londres junto a su ayudante. Edición digital de demostración.', 1, 0, 1, 220.00, 'libro_97c776407634e8f306f96673a25f60b1.pdf'),
-('Viaje al centro de la Tierra', 'Julio Verne', 1864, NULL, 1, 0, NULL, 0, NULL,
+('Viaje al centro de la Tierra', 'Julio Verne', 1864, NULL, 'Ciencia ficción', 0, NULL, 0, NULL,
  'Un profesor, su sobrino y un guía descienden por un volcán de Islandia en busca del centro de la Tierra. Edición digital de demostración.', 1, 0, 1, 220.00, 'libro_62ebc9b8f65f694c79cbf107c5a6a18b.pdf'),
-('La isla del tesoro', 'Robert Louis Stevenson', 1883, NULL, 6, 0, NULL, 0, NULL,
+('La isla del tesoro', 'Robert Louis Stevenson', 1883, NULL, 'Novela', 0, NULL, 0, NULL,
  'El joven Jim Hawkins encuentra el mapa de un tesoro pirata y se embarca en una expedición llena de traiciones. Edición digital de demostración.', 1, 0, 1, 200.00, 'libro_9dc4f841fa0063f97c7a16198b1f7c63.pdf'),
-('Alicia en el país de las maravillas', 'Lewis Carroll', 1865, NULL, 4, 0, NULL, 0, NULL,
+('Alicia en el país de las maravillas', 'Lewis Carroll', 1865, NULL, 'Fantasía', 0, NULL, 0, NULL,
  'Alicia cae por una madriguera y llega a un mundo de personajes extraños y lógica absurda. Edición digital de demostración.', 1, 0, 1, 190.00, 'libro_cd7975ebe0f23365ed30c1d43dce491c.pdf'),
-('Cuentos de la selva', 'Horacio Quiroga', 1918, NULL, 3, 0, NULL, 0, NULL,
+('Cuentos de la selva', 'Horacio Quiroga', 1918, NULL, 'Fábula', 0, NULL, 0, NULL,
  'Ocho cuentos protagonizados por animales de la selva misionera, escritos por el autor uruguayo para sus hijos. Edición digital de demostración.', 1, 0, 1, 170.00, 'libro_bae438c40723616b811cca8597f53e7f.pdf'),
-('María', 'Jorge Isaacs', 1867, NULL, 9, 0, NULL, 0, NULL,
+('María', 'Jorge Isaacs', 1867, NULL, 'Romance', 0, NULL, 0, NULL,
  'La historia de amor entre Efraín y María en el Valle del Cauca. Una de las novelas románticas más importantes de la literatura hispanoamericana. Edición digital de demostración.', 1, 0, 1, 180.00, 'libro_621aeba858890ce54b344dd53a4b809f.pdf');
 
 -- ------------------------------------------------------------
 -- TABLA VENTAS
--- Cada fila es una venta: quién compró, quién vendió, cuándo y
--- por cuánto. Los libros vendidos van en la tabla venta_lineas.
+-- Cada fila es una venta (la cabecera): quién compró, quién vendió y
+-- cuándo. Los libros vendidos van en la tabla venta_lineas, y el total
+-- no se guarda: se calcula sumando sus líneas (vista vw_ventas_detalle),
+-- así nunca puede quedar distinto de lo que se vendió.
 -- El cliente o el vendedor pueden quedar vacíos (NULL), por
 -- ejemplo en una venta de mostrador a alguien sin cuenta, pero
--- no los dos a la vez.
+-- no los dos a la vez. El canal no necesita una columna: una venta
+-- sin vendedor es una compra por la web y una con vendedor es de mostrador.
 -- Las claves foráneas usan ON DELETE RESTRICT: no se puede borrar
 -- un usuario que tiene ventas (el historial no se pierde). Los
 -- usuarios se dan de baja (activo = 0) en lugar de borrarse.
@@ -294,7 +278,6 @@ CREATE TABLE ventas (
     id_cliente INT NULL,                         -- Usuario que compró (id de la tabla usuarios); puede quedar vacío
     id_vendedor INT NULL,                        -- Bibliotecario que vendió (id de la tabla usuarios); puede quedar vacío
     fecha DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,   -- Fecha y hora de la venta (se pone sola)
-    total DECIMAL(10,2) NOT NULL DEFAULT 0,      -- Importe total de la venta
     CONSTRAINT fk_ventas_cliente FOREIGN KEY (id_cliente) REFERENCES usuarios(id)      -- El cliente tiene que existir
         ON DELETE RESTRICT ON UPDATE CASCADE,
     CONSTRAINT fk_ventas_vendedor FOREIGN KEY (id_vendedor) REFERENCES usuarios(id)    -- El vendedor tiene que existir
@@ -336,11 +319,12 @@ CREATE TABLE venta_lineas (
 -- Venta 1: el bibliotecario de prueba (usuario 1) le vende al
 --          cliente de prueba (usuario 2).
 -- Venta 2: venta de mostrador a alguien sin cuenta (sin cliente).
--- El total de cada venta es la suma de cantidad x precio de sus líneas.
+-- El total de cada venta es la suma de cantidad x precio de sus líneas
+-- (la vista vw_ventas_detalle lo calcula).
 -- ------------------------------------------------------------
-INSERT INTO ventas (id_cliente, id_vendedor, fecha, total) VALUES
-(2, 1, '2026-09-30 10:15:00', 1670.00),      -- venta 1
-(NULL, 1, '2026-10-01 16:40:00', 590.00);    -- venta 2
+INSERT INTO ventas (id_cliente, id_vendedor, fecha) VALUES
+(2, 1, '2026-09-30 10:15:00'),      -- venta 1
+(NULL, 1, '2026-10-01 16:40:00');   -- venta 2
 
 INSERT INTO venta_lineas (venta_id, libro_id, cantidad, precio, formato) VALUES
 (1, 2, 1, 890.00, 'fisico'),   -- venta 1: 1 x Don Quijote de la Mancha   =  890.00
@@ -396,38 +380,41 @@ ALTER TABLE ventas ADD INDEX idx_ventas_fecha (fecha);
 -- propios, cada vez que se consulta se ejecuta el SELECT que la define.
 -- Convención: el nombre empieza con "vw_". Se escriben las columnas una
 -- por una (sin SELECT *) para que un cambio en la tabla no cambie la vista.
--- Las dos son vistas "complejas" (usan JOIN y la primera GROUP BY): sirven
+-- Las dos son vistas "complejas" (usan JOIN y GROUP BY): sirven
 -- para consultar, no para modificar datos.
 -- ============================================================
 
--- Catálogo: los libros activos con el nombre de su categoría, la valoración
--- media y la cantidad de reseñas (LEFT JOIN para incluir libros sin reseñas).
+-- Catálogo: los libros activos con su categoría, la valoración media y la
+-- cantidad de reseñas (LEFT JOIN para incluir libros sin reseñas).
 -- No incluye el nombre del archivo digital: la vista oculta esa columna.
 -- La usa la página del catálogo.
 CREATE VIEW vw_catalogo AS
 SELECT libros.id, libros.titulo, libros.autor, libros.anio, libros.portada, libros.descripcion,
-       libros.categoria_id, categorias.nombre AS categoria, libros.isbn, libros.precio,
+       libros.categoria, libros.isbn, libros.precio,
        libros.codigo_barras, libros.stock, libros.activo, libros.formato_fisico,
        libros.formato_digital, libros.precio_digital,
        ROUND(AVG(resenias.puntuacion), 1) AS media, COUNT(resenias.id) AS total_resenas
 FROM libros
-JOIN categorias ON categorias.id = libros.categoria_id
 LEFT JOIN resenias ON resenias.libro_id = libros.id
 WHERE libros.activo = 1
 GROUP BY libros.id, libros.titulo, libros.autor, libros.anio, libros.portada, libros.descripcion,
-         libros.categoria_id, categorias.nombre, libros.isbn, libros.precio, libros.codigo_barras,
+         libros.categoria, libros.isbn, libros.precio, libros.codigo_barras,
          libros.stock, libros.activo, libros.formato_fisico, libros.formato_digital, libros.precio_digital;
 
--- Ventas con el nombre del cliente y del vendedor. La tabla usuarios se une
--- dos veces (una para cada uno), por eso lleva dos nombres. LEFT JOIN incluye
--- las ventas sin cliente (de mostrador) o sin vendedor (compras por la web).
+-- Ventas con el total (suma de cantidad x precio de sus líneas) y el nombre del
+-- cliente y del vendedor. La tabla usuarios se une dos veces (una para cada
+-- uno), por eso lleva dos nombres. LEFT JOIN incluye las ventas sin cliente
+-- (de mostrador) o sin vendedor (compras por la web).
 -- La usan "Mis compras" y "Operaciones" (cada consulta agrega su propio filtro).
 CREATE VIEW vw_ventas_detalle AS
-SELECT ventas.id, ventas.fecha, ventas.total, ventas.id_cliente, ventas.id_vendedor,
+SELECT ventas.id, ventas.fecha, COALESCE(SUM(venta_lineas.cantidad * venta_lineas.precio), 0) AS total,
+       ventas.id_cliente, ventas.id_vendedor,
        clientes.nombre AS cliente, vendedores.nombre AS vendedor
 FROM ventas
+LEFT JOIN venta_lineas ON venta_lineas.venta_id = ventas.id
 LEFT JOIN usuarios AS clientes ON clientes.id = ventas.id_cliente
-LEFT JOIN usuarios AS vendedores ON vendedores.id = ventas.id_vendedor;
+LEFT JOIN usuarios AS vendedores ON vendedores.id = ventas.id_vendedor
+GROUP BY ventas.id, ventas.fecha, ventas.id_cliente, ventas.id_vendedor, clientes.nombre, vendedores.nombre;
 
 -- ============================================================
 -- USUARIOS Y PERMISOS (principio de mínimo privilegio)
@@ -452,7 +439,7 @@ GRANT INSERT ON biblioteca.ventas TO 'nexora_app'@'localhost';                 -
 GRANT INSERT ON biblioteca.venta_lineas TO 'nexora_app'@'localhost';           -- caja y compras digitales
 GRANT INSERT, UPDATE, DELETE ON biblioteca.resenias TO 'nexora_app'@'localhost';   -- reseñas (la única tabla donde se borra)
 -- No tiene CREATE, DROP, ALTER ni GRANT: la web no puede cambiar la estructura de la base.
--- Tampoco puede escribir en categorias, ni borrar usuarios, libros o ventas.
+-- Tampoco puede borrar usuarios, libros o ventas.
 
 -- 2. Cuenta de solo consulta, que ve únicamente las vistas (por ejemplo, para
 -- reportes). No necesita acceso directo a las tablas: ve lo que la vista devuelve.

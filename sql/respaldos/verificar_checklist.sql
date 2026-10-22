@@ -60,7 +60,6 @@ SELECT COUNT(*) AS transacciones_abiertas FROM information_schema.INNODB_TRX;
 -- lista. Se anotan antes del backup y se comparan después de restaurar.
 -- ------------------------------------------------------------
 SELECT 'usuarios' AS tabla, COUNT(*) AS filas FROM usuarios
-UNION ALL SELECT 'categorias', COUNT(*) FROM categorias
 UNION ALL SELECT 'libros', COUNT(*) FROM libros
 UNION ALL SELECT 'ventas', COUNT(*) FROM ventas
 UNION ALL SELECT 'venta_lineas', COUNT(*) FROM venta_lineas
@@ -75,5 +74,4 @@ WHERE ventas.id IS NULL;
 
 SELECT libros.id AS libro_sin_categoria
 FROM libros
-LEFT JOIN categorias ON categorias.id = libros.categoria_id
-WHERE categorias.id IS NULL;
+WHERE libros.categoria IS NULL OR TRIM(libros.categoria) = '';

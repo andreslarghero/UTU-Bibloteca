@@ -4,8 +4,8 @@ require_once __DIR__ . '/Portada.php';
 // ============================================================
 // MODELO: LIBRO
 // Cada objeto es una fila de la tabla "libros" (con algunos datos
-// que el repositorio agrega al leerla: nombre de la categoría,
-// valoración media y cantidad de reseñas).
+// que el repositorio agrega al leerla: valoración media y cantidad
+// de reseñas). La categoría es un texto de la propia tabla "libros".
 // Un libro puede venderse en formato físico, digital o en los dos.
 // También se usa para llevar al formulario lo que el bibliotecario
 // escribió, aunque tenga errores: por eso los atributos aceptan
@@ -19,8 +19,7 @@ class Libro
     private $anio;
     private $portada;
     private $descripcion;
-    private int $categoriaId;
-    private string $categoria;      // nombre de la categoría
+    private string $categoria;      // categoría (texto, hasta 50 letras)
     private $isbn;
     private $precio;
     private $codigoBarras;
@@ -42,8 +41,8 @@ class Libro
         $this->anio = $d['anio'] ?? '';
         $this->portada = $d['portada'] ?? '';
         $this->descripcion = $d['descripcion'] ?? '';
-        $this->categoriaId = (int) ($d['categoria_id'] ?? 0);
-        $this->categoria = (string) ($d['categoria'] ?? '');
+        // Sin espacios sobrantes al principio, al final ni repetidos en el medio.
+        $this->categoria = trim(preg_replace('/\s+/u', ' ', (string) ($d['categoria'] ?? '')));
         $this->isbn = $d['isbn'] ?? '';
         $this->precio = $d['precio'] ?? '';
         $this->codigoBarras = $d['codigo_barras'] ?? '';
@@ -71,7 +70,6 @@ class Libro
     public function getAnio() { return $this->anio; }
     public function getPortada() { return $this->portada; }
     public function getDescripcion() { return $this->descripcion; }
-    public function getCategoriaId(): int { return $this->categoriaId; }
     public function getCategoria(): string { return $this->categoria; }
     public function getIsbn() { return $this->isbn; }
     public function getPrecio() { return $this->precio; }
@@ -99,6 +97,7 @@ class Libro
     // ---------- Cambios ----------
     public function setArchivoDigital($archivo): void { $this->archivoDigital = $archivo; }
     public function setPortada($portada): void { $this->portada = $portada; }
+    public function setCategoria(string $categoria): void { $this->categoria = $categoria; }
 
     // Datos listos para guardar en la base: los campos opcionales vacíos
     // quedan como null y lo que no corresponde al formato queda en 0 o null.
@@ -110,7 +109,7 @@ class Libro
             'anio' => ($this->anio == '') ? null : (int) $this->anio,
             'portada' => ($this->portada == '') ? null : $this->portada,
             'descripcion' => $this->descripcion,
-            'categoria_id' => $this->categoriaId,
+            'categoria' => $this->categoria,
             'isbn' => ($this->isbn == '') ? null : $this->isbn,
             // Si el libro no es físico, no usa precio físico ni stock: quedan en 0.
             'precio' => $this->formatoFisico ? (float) $this->precio : 0,
@@ -126,10 +125,10 @@ class Libro
 
     // ---------- Validación ----------
     // Revisa las reglas del libro y devuelve la lista de errores (vacía si todo
-    // está bien). Usa los repositorios solo para comprobar que la categoría
-    // existe y que el ISBN y el código de barras no estén en otro libro.
+    // está bien). Usa el repositorio solo para comprobar que el ISBN y el código
+    // de barras no estén en otro libro.
     // Si la portada es un archivo local válido, deja su ruta ya normalizada.
-    public function validar(RepositorioLibros $libros, RepositorioCategorias $categorias): array
+    public function validar(RepositorioLibros $libros): array
     {
         $errores = [];
 
@@ -168,8 +167,11 @@ class Libro
             }
         }
 
-        if (!$categorias->existe($this->categoriaId)) {
-            $errores[] = 'Elige una categoría válida.';
+        // La categoría es obligatoria (hasta 50 letras).
+        if ($this->categoria == '') {
+            $errores[] = 'La categoría es obligatoria.';
+        } elseif (mb_strlen($this->categoria) > 50) {
+            $errores[] = 'La categoría es demasiado larga (máximo 50 letras).';
         }
 
         // El precio y el stock son del formato físico: solo se exigen si el libro es físico.

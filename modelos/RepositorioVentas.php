@@ -54,11 +54,12 @@ class RepositorioVentas implements Repositorio
                 $linea->fijarPrecio($venta->precioDe($libro), $libro->getTitulo());
             }
 
-            // 2. Guarda la venta (la fecha la pone sola la base).
+            // 2. Guarda la venta (la fecha la pone sola la base). El total no se
+            //    guarda: se calcula con las líneas (vista vw_ventas_detalle).
             if (!$resultado) {
                 $total = $venta->calcularTotal();
-                $consulta = $this->pdo->prepare('INSERT INTO ventas (id_cliente, id_vendedor, total) VALUES (?, ?, ?)');
-                $consulta->execute([$venta->getClienteId(), $venta->getVendedorId(), $total]);
+                $consulta = $this->pdo->prepare('INSERT INTO ventas (id_cliente, id_vendedor) VALUES (?, ?)');
+                $consulta->execute([$venta->getClienteId(), $venta->getVendedorId()]);
                 $ventaId = (int) $this->pdo->lastInsertId();
 
                 // 3. Guarda una línea por cada libro y se ocupa del stock.

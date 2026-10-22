@@ -72,8 +72,8 @@ PROYECTO/
 │   ├── Repositorio.php       Interfaz: todos() y buscar($id)
 │   ├── Usuario.php (abstracta) → Cliente.php, Bibliotecario.php
 │   ├── Venta.php (abstracta)   → VentaMostrador.php, VentaDigital.php
-│   ├── Libro.php, Categoria.php, Resena.php, LineaVenta.php, Ticket.php, ResultadoVenta.php
-│   ├── RepositorioUsuarios.php, RepositorioLibros.php, RepositorioCategorias.php,
+│   ├── Libro.php, Resena.php, LineaVenta.php, Ticket.php, ResultadoVenta.php
+│   ├── RepositorioUsuarios.php, RepositorioLibros.php,
 │   │   RepositorioResenas.php, RepositorioVentas.php
 │   └── Portada.php, ArchivoDigital.php, Steam.php   Archivos de portada, PDF/EPUB y aviso al Arduino
 ├── vistas/                   VISTAS: el HTML, una carpeta por entidad
@@ -106,13 +106,13 @@ PROYECTO/
 
 | Concepto | Dónde se usa |
 |---|---|
-| Clases, atributos privados, constructor, getters | todas las entidades (`Libro`, `Resena`, `Categoria`, `LineaVenta`...) |
+| Clases, atributos privados, constructor, getters | todas las entidades (`Libro`, `Resena`, `LineaVenta`...) |
 | Encapsulamiento y validación en la clase | `Libro::validar()`, `Usuario::validarNombreCorreo()`, `Resena::nueva()` (limita la puntuación entre 1 y 5) |
 | Herencia (`extends`, `parent::`) | `Cliente` y `Bibliotecario` heredan de `Usuario`; `VentaMostrador` y `VentaDigital` heredan de `Venta`; todos los controladores heredan de `Controller` |
 | Clases abstractas | `Usuario`, `Venta` y `Controller` no se instancian |
 | Polimorfismo (sobrescritura) | `enlacesMenu()`: el menú del `Bibliotecario` agrega los enlaces de gestión con `parent::enlacesMenu()`. `RepositorioVentas::registrar()` guarda cualquier `Venta` y cada clase hija decide cómo comprobar el libro y qué pasa con el stock |
 | Interfaz | `Repositorio` (contrato: `todos()` y `buscar()`) la implementan los cinco repositorios |
-| `__toString()` | `Usuario`, `Libro`, `Categoria` y `Resena` (las estrellas) |
+| `__toString()` | `Usuario`, `Libro` y `Resena` (las estrellas) |
 | Miembros estáticos | `Conexion::getConexion()` (una sola conexión), `Ruta::a()`, `Portada`, `Texto`, `Steam`, `Usuario::desdeFila()` |
 
 Las consultas del cliente (mis compras, descargas) y las del bibliotecario (operaciones) están separadas a propósito en `RepositorioVentas` para no exponer compras ajenas. Las carpetas `config/`, `modelos/`, `controladores/` y `vistas/` tienen un `.htaccess` que impide abrirlas desde el navegador.
@@ -134,7 +134,7 @@ Las consultas del cliente (mis compras, descargas) y las del bibliotecario (oper
 
 3. **Crear la base de datos** importando `sql/biblioteca.sql`: abrir `http://localhost/phpmyadmin`, ir a **Importar**, elegir `sql/biblioteca.sql` y pulsar **Importar**.
 
-   `biblioteca.sql` es una **instalación limpia de demostración** (cumple la función de `schema.sql`): crea la base `biblioteca`, sus 6 tablas y datos de ejemplo. No es una copia de ninguna base real.
+   `biblioteca.sql` es una **instalación limpia de demostración** (cumple la función de `schema.sql`): crea la base `biblioteca`, sus 5 tablas y datos de ejemplo. No es una copia de ninguna base real.
 
    El script también crea los usuarios de la base (`nexora_app` y `nexora_consulta`), por eso hay que importarlo con `root`. Para ver ejemplos de consultas de clase se ejecuta después `sql/consultas_clase.sql`.
 
@@ -244,11 +244,11 @@ Se instala con `sql/biblioteca.sql` y aplica los temas vistos en la materia de B
 
 | Tema | Dónde |
 |---|---|
-| **DDL**: `IF [NOT] EXISTS`, `AUTO_INCREMENT`, `PRIMARY KEY`, `NOT NULL`, `UNIQUE` (también compuesto), `DEFAULT`, `CHECK` (stock no negativo, puntuación de 1 a 5, reglas entre columnas), `ENUM` (`rol` y `formato`) | las 6 tablas: `usuarios`, `categorias`, `libros`, `ventas`, `venta_lineas` y `resenias` |
-| **Claves foráneas y acciones referenciales** | `RESTRICT` (no borrar categorías, libros vendidos ni usuarios con ventas) y `CASCADE` (las líneas de una venta y las reseñas dependen de su padre); todas con `ON UPDATE CASCADE` |
+| **DDL**: `IF [NOT] EXISTS`, `AUTO_INCREMENT`, `PRIMARY KEY`, `NOT NULL`, `UNIQUE` (también compuesto), `DEFAULT`, `CHECK` (stock no negativo, puntuación de 1 a 5, reglas entre columnas), `ENUM` (`rol` y `formato`) | las 5 tablas: `usuarios`, `libros`, `ventas`, `venta_lineas` y `resenias` (la categoría es una columna de `libros`) |
+| **Claves foráneas y acciones referenciales** | `RESTRICT` (no borrar libros vendidos ni usuarios con ventas) y `CASCADE` (las líneas de una venta y las reseñas dependen de su padre); todas con `ON UPDATE CASCADE` |
 | **`ALTER TABLE`** | agrega los índices `idx_libros_titulo` e `idx_ventas_fecha` |
-| **`INSERT` de varias filas** | datos de demostración: **30 libros** (20 físicos y 10 digitales), **9 categorías**, 2 usuarios, 2 ventas con 3 líneas y 2 reseñas |
-| **Vistas** | `vw_catalogo` (libros activos con categoría y valoración, sin el archivo digital) y `vw_ventas_detalle` (ventas con cliente y vendedor). La web las usa para el catálogo, "Mis compras" y "Operaciones" |
+| **`INSERT` de varias filas** | datos de demostración: **30 libros** (20 físicos y 10 digitales, en **9 categorías**), 2 usuarios, 2 ventas con 3 líneas y 2 reseñas |
+| **Vistas** | `vw_catalogo` (libros activos con categoría y valoración, sin el archivo digital) y `vw_ventas_detalle` (ventas con el total calculado con sus líneas, el cliente y el vendedor). La web las usa para el catálogo, "Mis compras" y "Operaciones" |
 | **Usuarios, permisos y roles** | `nexora_app` (la web: lee todo y escribe solo donde corresponde; no puede borrar libros, ventas ni usuarios, ni cambiar la estructura), `nexora_consulta` (solo ve las vistas, mediante el rol `lector_vistas`) |
 | **Motor y juego de caracteres** | InnoDB, `utf8mb4` y `utf8mb4_unicode_ci` |
 | **`JOIN`**, **`UNION` / `INTERSECT` / `EXCEPT`**, tablas temporales, `UPDATE` / `DELETE`, `DESCRIBE` | ejemplos ejecutables en `sql/consultas_clase.sql` |
@@ -286,3 +286,23 @@ En `sql/respaldos/`:
 - Santiago Falero
 
 Los cuatro integrantes participaron de forma compartida en todas las materias.
+
+---
+
+## Modelo de cinco tablas
+
+La base tiene **5 tablas**: `usuarios`, `libros`, `ventas`, `venta_lineas` y `resenias`. La categoría de cada libro es una columna de texto de `libros` (`categoria VARCHAR(50) NOT NULL`): una categoría solo tiene un nombre, así que no necesita tabla propia para cumplir la 3FN. El filtro del catálogo se arma con las categorías que hay en los libros activos. Al guardar un libro, si la categoría ya existe (aunque se escriba sin mayúsculas ni tildes) se usa la grafía guardada.
+
+`ventas` es la cabecera (cliente, vendedor, fecha) y `venta_lineas` el detalle (libro, cantidad, precio histórico y formato). El total no se guarda: lo calcula la vista `vw_ventas_detalle`. El canal no necesita columna: una venta sin vendedor es una compra por la web y una con vendedor es del mostrador.
+
+> **Pendiente de aceptación expresa del profesor:** la grilla original indica seis tablas. Esta versión elimina `categorias` (el profesor autorizó reducir a cinco unificando las ventas; aquí se llega a cinco conservando la 3FN).
+
+### Migrar una base existente (esquema anterior de 6 tablas)
+
+En `sql/migraciones/` (con `root`, **siempre sobre una copia primero**):
+
+1. Respaldo con `sql/respaldos/respaldar.bat` y comprobar que restaura.
+2. `001_cinco_tablas_categoria_en_libros.sql`: copia el nombre de cada categoría a `libros.categoria`, quita `categoria_id`, la tabla `categorias`, `ventas.total` (solo si coincide con la suma de las líneas) y la tabla sobrante `resenas` (solo si está vacía), y crea las vistas y las cuentas `nexora_*`.
+3. `002_verificar_migracion.sql`: compara cantidades, importes y referencias; debe terminar con `estado = OK`.
+
+Para volver atrás se restaura el respaldo.
