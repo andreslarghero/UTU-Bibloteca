@@ -57,8 +57,7 @@ index.php?controlador=libroadmin&accion=editar&id=3
 ```
 PROYECTO/
 ├── index.php                 Enrutador: lee controlador y acción y llama al controlador
-├── index.html                Dirección anterior: lleva a index.php
-├── .htaccess                 Impide abrir los archivos .md desde el navegador
+├── preparar_entrega.ps1      Crea la entrega para localhost (sitio + carpeta privada), ver "Instalación"
 ├── config/
 │   ├── Conexion.php          Clase Conexion: una sola conexión PDO para toda la aplicación
 │   ├── Ruta.php              Arma las direcciones (controlador + acción)
@@ -82,8 +81,8 @@ PROYECTO/
 ├── css/estilos.css           Estilos de todo el sitio
 ├── js/main.js                JavaScript de todo el sitio
 ├── img/portadas/             20 portadas locales (.webp) de los libros físicos
-├── digitales/                10 PDF de demostración (protegidos con .htaccess)
-├── sql/biblioteca.sql        Instalación limpia de la base de datos
+├── digitales/                10 PDF de demostración (en la entrega quedan FUERA del sitio)
+├── sql/                      biblioteca.sql (instalación limpia), consultas_clase.sql, migraciones/ y respaldos/
 └── steam/
     ├── README_STEAM.md       Circuito, conexiones, comandos y validación
     ├── arduino/biblioteca_steam.ino
@@ -114,24 +113,17 @@ PROYECTO/
 | `__toString()` | `Usuario`, `Libro` y `Resena` (las estrellas) |
 | Miembros estáticos | `Conexion::getConexion()` (una sola conexión), `Ruta::a()`, `Portada`, `Texto`, `Steam`, `Usuario::desdeFila()` |
 
-Las consultas del cliente (mis compras, descargas) y las del bibliotecario (operaciones) están separadas a propósito en `RepositorioVentas` para no exponer compras ajenas. Las carpetas `config/`, `modelos/`, `controladores/` y `vistas/` tienen un `.htaccess` que impide abrirlas desde el navegador.
+Las consultas del cliente (mis compras, descargas) y las del bibliotecario (operaciones) están separadas a propósito en `RepositorioVentas` para no exponer compras ajenas.
 
 ---
 
 ## Instalación
 
-1. **Clonar** el repositorio dentro de la carpeta web de XAMPP:
+**Esta carpeta de desarrollo NO se publica en Apache**: tiene `.git`, `sql/` y respaldos, y no lleva ningún `.htaccess` ni `.gitignore`. No debe copiarse ni clonarse dentro de `htdocs`. Para verla en localhost se genera una **entrega**: dos carpetas nuevas, una pública y una privada.
 
-   ```
-   cd C:\xampp\htdocs
-   git clone https://github.com/andreslarghero/UTU-Bibloteca.git PROYECTO
-   ```
+1. **Iniciar Apache y MySQL** desde el panel de control de XAMPP.
 
-   También se puede clonar en otro lugar y copiar la carpeta a `C:\xampp\htdocs\PROYECTO`, incluidos los archivos `.htaccess`.
-
-2. **Iniciar Apache y MySQL** desde el panel de control de XAMPP.
-
-3. **Crear la base de datos** importando `sql/biblioteca.sql`: abrir `http://localhost/phpmyadmin`, ir a **Importar**, elegir `sql/biblioteca.sql` y pulsar **Importar**.
+2. **Crear la base de datos** importando `sql/biblioteca.sql`: abrir `http://localhost/phpmyadmin`, ir a **Importar**, elegir `sql/biblioteca.sql` y pulsar **Importar**.
 
    `biblioteca.sql` es una **instalación limpia de demostración** (cumple la función de `schema.sql`): crea la base `biblioteca`, sus 5 tablas y datos de ejemplo. No es una copia de ninguna base real.
 
@@ -139,11 +131,30 @@ Las consultas del cliente (mis compras, descargas) y las del bibliotecario (oper
 
    > **Atención:** si ya existe una base `biblioteca` en uso, el script borra y vuelve a crear sus tablas. Hacer un backup antes (ver "Copias de seguridad").
 
+3. **Generar la entrega** (desde esta carpeta, en PowerShell):
+
+   ```
+   powershell -ExecutionPolicy Bypass -File .\preparar_entrega.ps1
+   ```
+
+   Crea (y se detiene si ya existen, nunca sobrescribe):
+
+   | Carpeta | Qué tiene | ¿Tiene dirección web? |
+   |---|---|---|
+   | `C:\xampp\htdocs\NEXORA_ENTREGA` | el sitio: `index.php`, `config/`, `controladores/`, `modelos/`, `vistas/`, `css/`, `js/`, `img/` | Sí |
+   | `C:\xampp\NEXORA_ENTREGA_PRIVADO` | `digitales/` (los ebooks), `sql/` (instalación de la base) y `LEEME_INSTALACION.txt` | **No** (fuera de `htdocs`) |
+
+   Las dos carpetas se necesitan: sin la privada no hay descargas de ebooks. El sitio sabe dónde están los ebooks por `config/ruta_digitales.php` (lo crea el script).
+
 4. **Abrir** en el navegador:
 
    ```
-   http://localhost/PROYECTO/
+   http://localhost/NEXORA_ENTREGA/
    ```
+
+**Cómo se protege sin `.htaccess`:** los ebooks y el SQL están fuera de `htdocs` (no tienen dirección); cada carpeta del sitio tiene un `index.html` vacío (no hay lista de archivos); los archivos internos (`config`, `modelos`, `controladores`, `vistas`) no muestran nada si se abren por su dirección; el sitio no incluye `.git`, `.md` ni `sql`. Los ebooks solo los entrega `CompraController::descargar` a quien los compró.
+
+**Sin `.gitignore`:** las exclusiones (respaldos, PDF nuevos de `digitales/`, configuraciones locales de STEAM, documentos de entrega) están en `.git/info/exclude`, un archivo local de este clon que Git no sube. Si se clona el repositorio en otra PC hay que volver a escribirlas.
 
 ### Conexión a la base
 
@@ -270,10 +281,10 @@ En `sql/respaldos/`:
 - **Consultas preparadas** (prepared statements) en todas las consultas con datos del usuario.
 - **Roles y estado** (activo o dado de baja) comprobados en la base **en cada petición**.
 - Ventas dentro de **transacciones**, con bloqueo de filas para el stock.
-- **Descargas protegidas:** los PDF no se pueden abrir por su dirección (`digitales/.htaccess`); solo se entregan a quien compró el libro.
+- **Descargas protegidas:** en la entrega los PDF están fuera de la carpeta pública (sin dirección web); solo se entregan a quien compró el libro.
 - Textos mostrados con `htmlspecialchars`.
 - **Mínimo privilegio en la base:** la web usa la cuenta `nexora_app` (no `root`), que no puede borrar libros, ventas ni usuarios ni cambiar la estructura; la vista `vw_catalogo` no expone el nombre del archivo digital.
-- `.htaccess` en `sql/` y `steam/` (y regla para los `.md`) para que no se puedan abrir desde el navegador.
+- **Sin `.htaccess`:** el SQL, STEAM, `.git` y los `.md` no se copian a la carpeta pública de la entrega (ver "Instalación"). La carpeta de desarrollo no se publica en Apache.
 
 ---
 

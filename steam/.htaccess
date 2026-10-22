@@ -1,9 +1,0 @@
-# ============================================================
-# CARPETA STEAM
-# Aquí están el código del Arduino, el puente en Python y su
-# documentación. Se usan desde la PC, no desde el navegador.
-#
-# Esta regla le dice al servidor (Apache) que NADIE puede abrir
-# estos archivos escribiendo su dirección en el navegador.
-# ============================================================
-Require all denied

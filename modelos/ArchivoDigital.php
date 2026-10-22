@@ -2,10 +2,10 @@
 // ============================================================
 // MODELO: ARCHIVOS DIGITALES (PDF y EPUB)
 // Los archivos se guardan en la carpeta "digitales" del proyecto,
-// que está protegida (digitales/.htaccess) para que no se pueda abrir
-// desde el navegador. Si el sitio se instala SIN .htaccess, se crea el
-// archivo config/ruta_digitales.php con la ruta de una carpeta FUERA del
-// sitio (ver preparar_entrega.ps1) y los archivos se guardan allí.
+// que no se publica en Apache. En la entrega para localhost
+// (preparar_entrega.ps1) se crea config/ruta_digitales.php con la ruta de
+// una carpeta FUERA del sitio y los archivos se guardan y leen allí; así
+// no se pueden abrir escribiendo una dirección (no hace falta .htaccess).
 // En la base solo se guarda el nombre del archivo. Esta clase valida
 // los archivos que sube el bibliotecario, los guarda con un nombre
 // seguro y ubica de forma segura los que se descargan.
