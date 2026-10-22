@@ -7,6 +7,12 @@
 //   $claseBody     clase del <body> (puede estar vacía)
 // El pie correspondiente está en pie.php.
 // ============================================================
+// Las vistas solo se muestran desde un controlador (render define $tituloPagina).
+// Si alguien abre una vista escribiendo su dirección, no se muestra nada.
+if (!isset($tituloPagina)) {
+    exit;
+}
+
 // Las ayudas de presentación (precios, portadas, versiones) se cargan aquí.
 require_once __DIR__ . "/../ayudas.php";
 ?>

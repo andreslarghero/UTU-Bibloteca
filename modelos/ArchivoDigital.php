@@ -2,7 +2,10 @@
 // ============================================================
 // MODELO: ARCHIVOS DIGITALES (PDF y EPUB)
 // Los archivos se guardan en la carpeta "digitales" del proyecto,
-// que está protegida para que no se pueda abrir desde el navegador.
+// que está protegida (digitales/.htaccess) para que no se pueda abrir
+// desde el navegador. Si el sitio se instala SIN .htaccess, se crea el
+// archivo config/ruta_digitales.php con la ruta de una carpeta FUERA del
+// sitio (ver preparar_entrega.ps1) y los archivos se guardan allí.
 // En la base solo se guarda el nombre del archivo. Esta clase valida
 // los archivos que sube el bibliotecario, los guarda con un nombre
 // seguro y ubica de forma segura los que se descargan.
@@ -14,68 +17,64 @@ class ArchivoDigital
     // La carpeta protegida donde se guardan los archivos.
     public static function carpeta(): string
     {
+        $configuracion = dirname(__DIR__) . '/config/ruta_digitales.php';
+        if (is_file($configuracion)) {
+            return rtrim(include $configuracion, '/\\') . '/';
+        }
         return dirname(__DIR__) . '/digitales/';
     }
 
-    // Revisa el archivo que llegó en $_FILES["archivo"]. Devuelve
-    // ["error" => texto o "", "extension" => "pdf" o "epub", "archivo" => datos o null].
-    // "archivo" queda con los datos solo si se envió un archivo válido; si no se
-    // envió ninguno (error 4), no hay error ni archivo.
-    public static function validarSubida($archivo): array
+    // ¿Se eligió un archivo en el formulario? $archivo es $_FILES["archivo"]
+    // (error 4 = UPLOAD_ERR_NO_FILE = no se eligió ninguno).
+    public static function haySubida($archivo): bool
     {
-        $vacio = ['error' => '', 'extension' => '', 'archivo' => null];
-
-        // ¿Se envió un archivo? (error 4 = UPLOAD_ERR_NO_FILE = no se eligió ninguno)
-        if (!$archivo || is_array($archivo['error']) || $archivo['error'] == UPLOAD_ERR_NO_FILE) {
-            return $vacio;
-        }
-
-        // La extensión se toma del nombre original, pero ese nombre no se usa para nada más.
-        $extension = strtolower(pathinfo($archivo['name'], PATHINFO_EXTENSION));
-        $resultado = ['error' => '', 'extension' => $extension, 'archivo' => null];
-
-        if ($archivo['error'] == UPLOAD_ERR_INI_SIZE || $archivo['error'] == UPLOAD_ERR_FORM_SIZE || $archivo['size'] > self::TAMANO_MAXIMO) {
-            $resultado['error'] = 'El archivo digital es demasiado grande (máximo 20 MB).';
-        } elseif ($archivo['error'] != UPLOAD_ERR_OK || !is_uploaded_file($archivo['tmp_name'])) {
-            $resultado['error'] = 'No se pudo subir el archivo digital.';
-        } elseif ($extension != 'pdf' && $extension != 'epub') {
-            $resultado['error'] = 'El archivo digital debe ser PDF o EPUB.';
-        } else {
-            // No alcanza con la extensión: se mira el comienzo del archivo para
-            // comprobar que por dentro es realmente un PDF o un EPUB.
-            //  - Un PDF siempre empieza con "%PDF-".
-            //  - Un EPUB es un archivo comprimido que empieza con "PK" y lleva
-            //    escrito su tipo "application/epub+zip" al principio.
-            $inicio = (string) file_get_contents($archivo['tmp_name'], false, null, 0, 200);
-
-            if ($extension == 'pdf') {
-                $valido = (substr($inicio, 0, 5) == '%PDF-');
-            } else {
-                $valido = (substr($inicio, 0, 4) == "PK\x03\x04" && strpos($inicio, 'application/epub+zip') !== false);
-            }
-
-            if ($valido) {
-                $resultado['archivo'] = $archivo;
-            } else {
-                $resultado['error'] = 'El archivo no es un PDF o EPUB válido.';
-            }
-        }
-
-        return $resultado;
+        return $archivo && !is_array($archivo['error']) && $archivo['error'] != UPLOAD_ERR_NO_FILE;
     }
 
-    // Guarda el archivo subido en la carpeta protegida. No se conserva el nombre
-    // original: se inventa uno seguro y único ("libro_" + 32 letras y números al
-    // azar + la extensión validada). Devuelve el nombre nuevo o "" si falló.
-    public static function guardar(array $subida, string $extension): string
+    // Revisa el archivo que llegó. Devuelve el mensaje de error, o "" si es válido.
+    public static function validarSubida(array $archivo): string
     {
+        // La extensión se toma del nombre original, pero ese nombre no se usa para nada más.
+        $extension = strtolower(pathinfo($archivo['name'], PATHINFO_EXTENSION));
+
+        if ($archivo['error'] == UPLOAD_ERR_INI_SIZE || $archivo['error'] == UPLOAD_ERR_FORM_SIZE || $archivo['size'] > self::TAMANO_MAXIMO) {
+            return 'El archivo digital es demasiado grande (máximo 20 MB).';
+        }
+        if ($archivo['error'] != UPLOAD_ERR_OK || !is_uploaded_file($archivo['tmp_name'])) {
+            return 'No se pudo subir el archivo digital.';
+        }
+        if ($extension != 'pdf' && $extension != 'epub') {
+            return 'El archivo digital debe ser PDF o EPUB.';
+        }
+
+        // No alcanza con la extensión: se mira el comienzo del archivo para
+        // comprobar que por dentro es realmente un PDF o un EPUB.
+        //  - Un PDF siempre empieza con "%PDF-".
+        //  - Un EPUB es un archivo comprimido que empieza con "PK" y lleva
+        //    escrito su tipo "application/epub+zip" al principio.
+        $inicio = (string) file_get_contents($archivo['tmp_name'], false, null, 0, 200);
+
+        if ($extension == 'pdf') {
+            $valido = (substr($inicio, 0, 5) == '%PDF-');
+        } else {
+            $valido = (substr($inicio, 0, 4) == "PK\x03\x04" && strpos($inicio, 'application/epub+zip') !== false);
+        }
+
+        return $valido ? '' : 'El archivo no es un PDF o EPUB válido.';
+    }
+
+    // Guarda el archivo subido (ya validado) en la carpeta protegida. No se conserva
+    // el nombre original: se inventa uno seguro y único ("libro_" + 32 letras y
+    // números al azar + la extensión). Devuelve el nombre nuevo o "" si falló.
+    public static function guardar(array $subida): string
+    {
+        $extension = strtolower(pathinfo($subida['name'], PATHINFO_EXTENSION));
         $nombre = 'libro_' . bin2hex(random_bytes(16)) . '.' . $extension;
         if (move_uploaded_file($subida['tmp_name'], self::carpeta() . $nombre)) {
             return $nombre;
         }
         return '';
     }
-
     // Quita un archivo recién subido que no quedó asociado a ningún libro.
     public static function quitar(string $nombre): void
     {
@@ -90,7 +89,7 @@ class ArchivoDigital
     {
         $nombre = basename($nombreGuardado);
         $extension = strtolower(pathinfo($nombre, PATHINFO_EXTENSION));
-        $carpeta = realpath(dirname(__DIR__) . '/digitales');
+        $carpeta = realpath(self::carpeta());
         $ruta = ($carpeta === false) ? false : realpath($carpeta . DIRECTORY_SEPARATOR . $nombre);
 
         if ($ruta === false || !is_file($ruta) || strpos($ruta, $carpeta . DIRECTORY_SEPARATOR) !== 0

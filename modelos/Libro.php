@@ -85,9 +85,6 @@ class Libro
     public function estaActivo(): bool { return $this->activo; }
     public function tieneArchivo(): bool { return $this->archivoDigital != ''; }
 
-    // El stock es solo del formato físico: sin copias, el libro está agotado.
-    public function hayStock(): bool { return $this->stock > 0; }
-
     // Precio con el que se muestra el libro: el físico si lo tiene; si no, el digital.
     public function precioMostrado()
     {
@@ -96,7 +93,6 @@ class Libro
 
     // ---------- Cambios ----------
     public function setArchivoDigital($archivo): void { $this->archivoDigital = $archivo; }
-    public function setPortada($portada): void { $this->portada = $portada; }
     public function setCategoria(string $categoria): void { $this->categoria = $categoria; }
 
     // Datos listos para guardar en la base: los campos opcionales vacíos
@@ -163,7 +159,7 @@ class Libro
             if ($error != '') {
                 $errores[] = $error;
             } else {
-                $this->portada = Portada::normalizar($this->portada);
+                $this->portada = Portada::src($this->portada);
             }
         }
 

@@ -48,8 +48,8 @@ class CompraController extends Controller
         ], 'libro', 'Comprar libro digital');
     }
 
-    // Se ejecuta al pulsar "Confirmar compra". La venta (VentaDigital) la guarda el
-    // repositorio dentro de una transacción; aquí solo se elige el mensaje.
+    // Se ejecuta al pulsar "Confirmar compra". La compra la guarda el repositorio
+    // dentro de una transacción; aquí solo se elige el mensaje.
     public function confirmar(): void
     {
         $usuario = $this->requerirSesion();
@@ -59,19 +59,18 @@ class CompraController extends Controller
         }
 
         $libroId = $this->entero($_POST['libro'] ?? null);
-        $resultado = $this->ventas->registrar(VentaDigital::de($usuario->getId(), $libroId));
 
-        if ($resultado->getEstado() === ResultadoVenta::OK) {
-            $mensaje = 'Compra registrada. Venta N.º ' . $resultado->getVentaId() . '. Total: $ ' . Texto::precio($resultado->getTotal()) . '.';
+        try {
+            $ventaId = $this->ventas->comprarDigital($usuario->getId(), $libroId);
+
+            if ($ventaId == 0) {
+                $mensaje = 'Ya tienes este libro digital en Mis compras.';
+            } else {
+                $mensaje = 'Compra registrada. Venta N.º ' . $ventaId . '. Total: $ ' . Texto::precio($this->ventas->buscar($ventaId)->getTotal()) . '.';
+            }
             $tipo = 'exito';
-        } elseif ($resultado->getEstado() === ResultadoVenta::YA_COMPRADO) {
-            $mensaje = 'Ya tienes este libro digital en Mis compras.';
-            $tipo = 'exito';
-        } elseif ($resultado->getEstado() === ResultadoVenta::NO_DISPONIBLE) {
-            $mensaje = 'Este libro no está disponible en formato digital.';
-            $tipo = 'error';
-        } else {
-            $mensaje = 'No se pudo registrar la compra.';
+        } catch (Exception $e) {
+            $mensaje = $e->getMessage();
             $tipo = 'error';
         }
 
@@ -125,53 +124,38 @@ class CompraController extends Controller
         // este libro, en formato digital, y que el libro tenga un archivo guardado.
         $libro = $this->ventas->libroDescargable($usuario->getId(), $libroId);
 
-        $error = '';
-        $ruta = false;
-        $extension = '';
+        // El mismo aviso sirve si el libro no existe, si no es digital o si es de
+        // otra persona: así no se revela cuál es el caso.
+        $ruta = $libro ? ArchivoDigital::ruta($libro->getArchivoDigital()) : false;
 
-        if (!$libro) {
-            // El mismo aviso sirve si el libro no existe, si no es digital o si es de
-            // otra persona: así no se revela cuál es el caso.
-            $error = 'No puedes descargar este libro.';
-        } else {
-            $nombre = $libro->getArchivoDigital();
-            $extension = strtolower(pathinfo(basename($nombre), PATHINFO_EXTENSION));
-            $ruta = ArchivoDigital::ruta($nombre);
-
-            if ($ruta === false) {
-                $error = 'El archivo de este libro no está disponible en este momento.';
-            }
+        if ($ruta === false) {
+            http_response_code($libro ? 404 : 403);
+            $error = $libro ? 'El archivo de este libro no está disponible en este momento.' : 'No puedes descargar este libro.';
+            $this->render('compras/descarga_error', ['error' => $error], 'compra', 'Descarga');
+            return;
         }
 
-        if ($error == '') {
-            // Nombre con el que se guarda en el equipo del usuario: el título del libro.
-            // El nombre real del archivo en el servidor nunca se muestra. Se envía dos
-            // veces, como indica el estándar:
-            //  - "filename": versión simple, sin acentos ni símbolos;
-            //  - "filename*": el título completo con sus acentos (en UTF-8).
-            $titulo = trim(preg_replace('/[\x00-\x1F\x7F"\\\\\/:*?<>|]/u', '', $libro->getTitulo()));
-            $tituloSimple = Texto::sinTildes($titulo);
-            $tituloSimple = trim(preg_replace('/[^A-Za-z0-9 _-]/', '', $tituloSimple));
-            if ($titulo == '' || $tituloSimple == '') {
-                $titulo = 'libro';
-                $tituloSimple = 'libro';
-            }
-
-            // Cabeceras: le dicen al navegador qué tipo de archivo es y que lo descargue
-            // ("attachment") en lugar de intentar abrirlo como una página.
-            header('Content-Type: ' . (($extension == 'pdf') ? 'application/pdf' : 'application/epub+zip'));
-            header('Content-Disposition: attachment; filename="' . $tituloSimple . '.' . $extension . "\"; filename*=UTF-8''" . rawurlencode($titulo . '.' . $extension));
-            header('Content-Length: ' . filesize($ruta));
-            header('X-Content-Type-Options: nosniff');
-            header('Cache-Control: private, no-store');
-
-            // Envía el contenido del archivo y termina.
-            readfile($ruta);
-            exit;
+        // Nombre con el que se guarda en el equipo del usuario: el título del libro
+        // (con sus tildes, sin símbolos raros). El nombre real del archivo nunca se
+        // muestra. Se envía dos veces: "filename" sin tildes (navegadores viejos) y
+        // "filename*" con el título completo en UTF-8.
+        $extension = pathinfo($ruta, PATHINFO_EXTENSION);
+        $titulo = trim(preg_replace('/[^\p{L}\p{N} _-]/u', '', $libro->getTitulo()));
+        $simple = trim(preg_replace('/[^A-Za-z0-9 _-]/', '', Texto::sinTildes($titulo)));
+        if ($simple == '') {
+            $titulo = $simple = 'libro';
         }
 
-        // No se puede descargar: se muestra una página con el aviso, sin ningún dato interno.
-        http_response_code($libro ? 404 : 403);
-        $this->render('compras/descarga_error', ['error' => $error], 'compra', 'Descarga');
+        // Cabeceras: le dicen al navegador qué tipo de archivo es y que lo descargue
+        // ("attachment") en lugar de intentar abrirlo como una página.
+        header('Content-Type: ' . (($extension == 'pdf') ? 'application/pdf' : 'application/epub+zip'));
+        header('Content-Disposition: attachment; filename="' . $simple . '.' . $extension . "\"; filename*=UTF-8''" . rawurlencode($titulo . '.' . $extension));
+        header('Content-Length: ' . filesize($ruta));
+        header('X-Content-Type-Options: nosniff');
+        header('Cache-Control: private, no-store');
+
+        // Envía el contenido del archivo y termina.
+        readfile($ruta);
+        exit;
     }
 }

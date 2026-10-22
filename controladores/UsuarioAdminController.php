@@ -110,28 +110,20 @@ class UsuarioAdminController extends Controller
 
         // ---------- Guardado ----------
         if (count($errores) == 0) {
-            $guardado = false;
-
             try {
-                if ($id == 0) {
-                    // Alta: la contraseña se guarda cifrada y el usuario queda activo.
-                    $guardado = $this->usuarios->crear($nombre, $correo, password_hash($clave, PASSWORD_DEFAULT), $rol);
-                    $aviso = 'Usuario agregado: ' . $nombre . '.';
-                } elseif ($clave == '') {
-                    // Edición sin contraseña nueva: la contraseña actual no se toca.
-                    $guardado = $this->usuarios->actualizar($id, $nombre, $correo, $rol);
-                    $aviso = 'Usuario actualizado: ' . $nombre . '.';
-                } else {
-                    // Edición con contraseña nueva: se guarda cifrada.
-                    $guardado = $this->usuarios->actualizar($id, $nombre, $correo, $rol, password_hash($clave, PASSWORD_DEFAULT));
-                    $aviso = 'Usuario actualizado: ' . $nombre . ' (con contraseña nueva).';
-                }
-            } catch (Throwable $e) {
-                // Error inesperado de la base: no se muestran detalles internos.
-                $guardado = false;
-            }
+                // La contraseña se guarda cifrada. En una edición sin contraseña
+                // nueva queda en null y la actual no se toca.
+                $claveCifrada = ($clave == '') ? null : password_hash($clave, PASSWORD_DEFAULT);
 
-            if ($guardado) {
+                if ($id == 0) {
+                    // Alta: el usuario queda activo.
+                    $this->usuarios->crear($nombre, $correo, $claveCifrada, $rol);
+                    $aviso = 'Usuario agregado: ' . $nombre . '.';
+                } else {
+                    $this->usuarios->actualizar($id, $nombre, $correo, $rol, $claveCifrada);
+                    $aviso = 'Usuario actualizado: ' . $nombre . ($clave == '' ? '.' : ' (con contraseña nueva).');
+                }
+
                 // Si el bibliotecario editó su propia cuenta, se actualiza su sesión.
                 if ($id == $bibliotecario->getId()) {
                     $_SESSION['nombre'] = $nombre;
@@ -142,9 +134,10 @@ class UsuarioAdminController extends Controller
                 // navegador no se repita el guardado.
                 $this->guardarAviso('usuarios', $aviso);
                 $this->redirigir('usuarioadmin');
+            } catch (PDOException $e) {
+                // Error inesperado de la base: no se muestran detalles internos.
+                $errores[] = 'No se pudo guardar el usuario.';
             }
-
-            $errores[] = 'No se pudo guardar el usuario.';
         }
 
         // Con errores, el formulario conserva lo que se escribió.

@@ -11,8 +11,8 @@ require_once __DIR__ . '/../modelos/Steam.php';
 // Pantalla para el bibliotecario: se escanea (o se escribe) el código de
 // barras de cada libro y se va armando el ticket. El ticket es temporal:
 // se guarda en la sesión, no en la base. Al finalizar se guarda la venta
-// (VentaMostrador), sus líneas y se descuenta el stock, todo junto en una
-// transacción. Solo pueden entrar los bibliotecarios.
+// (RepositorioVentas::registrarMostrador), sus líneas y se descuenta el stock,
+// todo junto en una transacción. Solo pueden entrar los bibliotecarios.
 // Cada botón de la pantalla es una acción:
 //   index      muestra el ticket
 //   agregar    agrega un libro por su código de barras (POST)
@@ -167,19 +167,19 @@ class CajaController extends Controller
             $mensaje = 'No hay un usuario activo con ese correo.';
         } else {
             // La venta vuelve a consultar cada libro en la base, sin confiar en lo
-            // guardado en la sesión.
-            $venta = VentaMostrador::desdeTicket($ticket, $bibliotecario->getId(), $cliente ? $cliente->getId() : null);
-            $resultado = (new RepositorioVentas())->registrar($venta);
+            // guardado en la sesión. Si no se puede vender, lanza una Exception.
+            $ventas = new RepositorioVentas();
+            try {
+                $ventaId = $ventas->registrarMostrador($bibliotecario->getId(), $cliente ? $cliente->getId() : null, $ticket->lineas());
 
-            if ($resultado->esOk()) {
                 // Venta guardada: se vacía el ticket y se avisa con el número y el total.
                 $ticket->vaciar();
                 $ticket->guardar();
-                $mensaje = 'Venta registrada correctamente. Venta N.º ' . $resultado->getVentaId() . '. Total vendido: $ ' . Texto::precio($resultado->getTotal()) . '.';
+                $mensaje = 'Venta registrada correctamente. Venta N.º ' . $ventaId . '. Total vendido: $ ' . Texto::precio($ventas->buscar($ventaId)->getTotal()) . '.';
                 $tipo = 'exito';
-            } else {
+            } catch (Exception $e) {
                 // El ticket se conserva para poder corregirlo.
-                $mensaje = $resultado->getMensaje();
+                $mensaje = $e->getMessage();
             }
         }
 

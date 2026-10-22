@@ -71,8 +71,7 @@ PROYECTO/
 ├── modelos/                  MODELO: entidades y repositorios
 │   ├── Repositorio.php       Interfaz: todos() y buscar($id)
 │   ├── Usuario.php (abstracta) → Cliente.php, Bibliotecario.php
-│   ├── Venta.php (abstracta)   → VentaMostrador.php, VentaDigital.php
-│   ├── Libro.php, Resena.php, LineaVenta.php, Ticket.php, ResultadoVenta.php
+│   ├── Libro.php, Resena.php, Venta.php, LineaVenta.php, Ticket.php
 │   ├── RepositorioUsuarios.php, RepositorioLibros.php,
 │   │   RepositorioResenas.php, RepositorioVentas.php
 │   └── Portada.php, ArchivoDigital.php, Steam.php   Archivos de portada, PDF/EPUB y aviso al Arduino
@@ -108,9 +107,9 @@ PROYECTO/
 |---|---|
 | Clases, atributos privados, constructor, getters | todas las entidades (`Libro`, `Resena`, `LineaVenta`...) |
 | Encapsulamiento y validación en la clase | `Libro::validar()`, `Usuario::validarNombreCorreo()`, `Resena::nueva()` (limita la puntuación entre 1 y 5) |
-| Herencia (`extends`, `parent::`) | `Cliente` y `Bibliotecario` heredan de `Usuario`; `VentaMostrador` y `VentaDigital` heredan de `Venta`; todos los controladores heredan de `Controller` |
-| Clases abstractas | `Usuario`, `Venta` y `Controller` no se instancian |
-| Polimorfismo (sobrescritura) | `enlacesMenu()`: el menú del `Bibliotecario` agrega los enlaces de gestión con `parent::enlacesMenu()`. `RepositorioVentas::registrar()` guarda cualquier `Venta` y cada clase hija decide cómo comprobar el libro y qué pasa con el stock |
+| Herencia (`extends`, `parent::`) | `Cliente` y `Bibliotecario` heredan de `Usuario`; todos los controladores heredan de `Controller` |
+| Clases abstractas | `Usuario` y `Controller` no se instancian |
+| Polimorfismo (sobrescritura) | `enlacesMenu()`: el menú del `Bibliotecario` agrega los enlaces de gestión con `parent::enlacesMenu()`. Los repositorios cumplen el contrato de la interfaz `Repositorio` |
 | Interfaz | `Repositorio` (contrato: `todos()` y `buscar()`) la implementan los cinco repositorios |
 | `__toString()` | `Usuario`, `Libro` y `Resena` (las estrellas) |
 | Miembros estáticos | `Conexion::getConexion()` (una sola conexión), `Ruta::a()`, `Portada`, `Texto`, `Steam`, `Usuario::desdeFila()` |

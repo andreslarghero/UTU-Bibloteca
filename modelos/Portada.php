@@ -61,7 +61,7 @@ class Portada
     // rutas internas.
     public static function validar(string $portada): string
     {
-        if (preg_match('/^https?:\/\//i', $portada)) {
+        if (self::esDireccionWeb($portada)) {
             if (strlen($portada) > 255 || !filter_var($portada, FILTER_VALIDATE_URL)) {
                 return 'La dirección web de la portada no es válida.';
             }
@@ -74,28 +74,19 @@ class Portada
         return '';
     }
 
-    // La forma en que se guarda: una dirección web queda igual y un archivo
-    // local queda con su ruta normalizada.
-    public static function normalizar(string $portada): string
-    {
-        if (preg_match('/^https?:\/\//i', $portada)) {
-            return $portada;
-        }
-        return self::local($portada);
-    }
-
-    // Lo que hay que poner en el "src" de la imagen, o "" si el libro no tiene
-    // una portada que se pueda mostrar.
+    // Lo que se guarda en la base y lo que hay que poner en el "src" de la imagen,
+    // o "" si no hay una portada que se pueda mostrar. Una dirección web queda
+    // igual; una portada local tiene que pasar toda la validación (queda con su
+    // ruta normalizada).
     public static function src($portada): string
     {
         $portada = trim((string) $portada);
 
-        // Dirección web completa (un libro cargado con una imagen de otro sitio).
-        if (preg_match('#^https?://#i', $portada)) {
-            return $portada;
-        }
+        return self::esDireccionWeb($portada) ? $portada : self::local($portada);
+    }
 
-        // Portada local: tiene que pasar toda la validación. Si no, se usa el reemplazo.
-        return self::local($portada);
+    private static function esDireccionWeb(string $portada): bool
+    {
+        return preg_match('#^https?://#i', $portada) == 1;
     }
 }

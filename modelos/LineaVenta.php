@@ -31,7 +31,6 @@ class LineaVenta
     public function getTitulo(): string { return $this->titulo; }
     public function getCantidad(): int { return $this->cantidad; }
     public function getPrecio(): float { return $this->precio; }
-    public function getFormato(): string { return $this->formato; }
     public function tieneArchivo(): bool { return $this->tieneArchivo; }
     public function getTipoArchivo(): string { return $this->tipoArchivo; }
 
@@ -47,12 +46,5 @@ class LineaVenta
     public function cambiarCantidad(int $diferencia): void
     {
         $this->cantidad += $diferencia;
-    }
-
-    // El precio definitivo es el que tiene el libro en la base en este momento.
-    public function fijarPrecio(float $precio, string $titulo): void
-    {
-        $this->precio = $precio;
-        $this->titulo = $titulo;
     }
 }

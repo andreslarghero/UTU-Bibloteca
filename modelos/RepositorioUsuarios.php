@@ -84,26 +84,13 @@ class RepositorioUsuarios implements Repositorio
         return $consulta->execute([$nombre, $correo, $claveCifrada, $rol]);
     }
 
-    // Cambia los datos de acceso de la cuenta propia (nunca el rol ni el estado).
-    // Con $claveCifrada en null, la contraseña no se toca.
-    public function actualizarPerfil(int $id, string $nombre, string $correo, ?string $claveCifrada = null): bool
-    {
-        if ($claveCifrada === null) {
-            $consulta = $this->pdo->prepare('UPDATE usuarios SET nombre = ?, correo = ? WHERE id = ?');
-            return $consulta->execute([$nombre, $correo, $id]);
-        }
-        $consulta = $this->pdo->prepare('UPDATE usuarios SET nombre = ?, correo = ?, clave = ? WHERE id = ?');
-        return $consulta->execute([$nombre, $correo, $claveCifrada, $id]);
-    }
-
-    // Cambia los datos de cualquier usuario (lo usa el bibliotecario).
+    // Cambia los datos de un usuario (el bibliotecario edita cualquiera; "Mi perfil"
+    // pasa el mismo rol que ya tiene). Con $claveCifrada en null la contraseña no
+    // se toca: IFNULL deja la que había.
     public function actualizar(int $id, string $nombre, string $correo, string $rol, ?string $claveCifrada = null): bool
     {
-        if ($claveCifrada === null) {
-            $consulta = $this->pdo->prepare('UPDATE usuarios SET nombre = ?, correo = ?, rol = ? WHERE id = ?');
-            return $consulta->execute([$nombre, $correo, $rol, $id]);
-        }
-        $consulta = $this->pdo->prepare('UPDATE usuarios SET nombre = ?, correo = ?, rol = ?, clave = ? WHERE id = ?');
+        $consulta = $this->pdo->prepare(
+            'UPDATE usuarios SET nombre = ?, correo = ?, rol = ?, clave = IFNULL(?, clave) WHERE id = ?');
         return $consulta->execute([$nombre, $correo, $rol, $claveCifrada, $id]);
     }
 

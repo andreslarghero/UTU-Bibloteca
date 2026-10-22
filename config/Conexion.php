@@ -31,9 +31,10 @@ class Conexion
                     PDO::ATTR_EMULATE_PREPARES => false,              // consultas preparadas reales
                 ]);
             } catch (PDOException $e) {
-                // Si la conexión falla, se detiene la página y se muestra solo el
-                // motivo (sin el detalle interno de PHP, que incluiría los datos de acceso).
-                die('Error de conexión: ' . $e->getMessage());
+                // Si la conexión falla, se detiene la página con un aviso general. El
+                // detalle (que incluye el usuario de la base) solo va al registro de PHP.
+                error_log($e->getMessage());
+                die('No se pudo conectar con la base de datos.');
             }
         }
         return self::$pdo;

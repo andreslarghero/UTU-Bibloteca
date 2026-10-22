@@ -62,35 +62,23 @@ class PerfilController extends Controller
 
         // ---------- Guardado ----------
         if (count($errores) == 0) {
-            $guardado = false;
-
             try {
-                if ($clave == '') {
-                    // Sin contraseña nueva: la contraseña actual no se toca.
-                    // Nunca se modifican el rol ni el estado.
-                    $guardado = $this->usuarios->actualizarPerfil($id, $nombre, $correo);
-                    $aviso = 'Perfil actualizado.';
-                } else {
-                    // Con contraseña nueva: se guarda cifrada con password_hash.
-                    $guardado = $this->usuarios->actualizarPerfil($id, $nombre, $correo, password_hash($clave, PASSWORD_DEFAULT));
-                    $aviso = 'Perfil actualizado (con contraseña nueva).';
-                }
-            } catch (Throwable $e) {
-                // Error inesperado de la base: no se muestran detalles internos.
-                $guardado = false;
-            }
+                // Sin contraseña nueva (null) la actual no se toca. El rol que se
+                // pasa es el que ya tiene: desde el perfil nunca se cambia.
+                $claveNueva = ($clave == '') ? null : password_hash($clave, PASSWORD_DEFAULT);
+                $this->usuarios->actualizar($id, $nombre, $correo, $usuario->rol(), $claveNueva);
 
-            if ($guardado) {
                 // Actualiza el nombre de la sesión para que el saludo cambie enseguida.
                 $_SESSION['nombre'] = $nombre;
 
                 // Guarda el aviso y recarga la página, para que al refrescar el
                 // navegador no se repita el guardado.
-                $this->guardarAviso('perfil', $aviso);
+                $this->guardarAviso('perfil', $clave == '' ? 'Perfil actualizado.' : 'Perfil actualizado (con contraseña nueva).');
                 $this->redirigir('perfil');
+            } catch (PDOException $e) {
+                // Error inesperado de la base: no se muestran detalles internos.
+                $errores[] = 'No se pudo guardar el perfil.';
             }
-
-            $errores[] = 'No se pudo guardar el perfil.';
         }
 
         $this->mostrar($usuario, $nombre, $correo, $errores, '');

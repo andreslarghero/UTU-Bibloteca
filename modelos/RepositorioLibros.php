@@ -135,22 +135,14 @@ class RepositorioLibros implements Repositorio
     // "FOR UPDATE" bloquea la fila hasta terminar la transacción, para que
     // otra venta no pueda gastar el mismo stock al mismo tiempo.
 
-    public function bloquearFisico(int $id): ?Libro
+    public function bloquear(int $id): ?Libro
     {
         $consulta = $this->pdo->prepare(
-            'SELECT titulo, precio, stock, activo, formato_fisico FROM libros WHERE id = ? FOR UPDATE');
+            'SELECT titulo, precio, stock, activo, formato_fisico, formato_digital, precio_digital, archivo_digital
+             FROM libros WHERE id = ? FOR UPDATE');
         $consulta->execute([$id]);
         return $this->aObjeto($consulta->fetch());
     }
-
-    public function bloquearDigital(int $id): ?Libro
-    {
-        $consulta = $this->pdo->prepare(
-            'SELECT titulo, precio_digital, archivo_digital, activo, formato_digital FROM libros WHERE id = ? FOR UPDATE');
-        $consulta->execute([$id]);
-        return $this->aObjeto($consulta->fetch());
-    }
-
     // Descuenta stock. "AND stock >= ?" hace que nunca quede negativo: si no
     // alcanza, la fila no se modifica. Devuelve las filas modificadas (1 si
     // salió bien, 0 si el stock ya no alcanzaba).

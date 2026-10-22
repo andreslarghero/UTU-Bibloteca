@@ -41,13 +41,25 @@ if (!is_string($nombre) || !is_string($accion) || !isset($controladores[$nombre]
 
 $clase = $controladores[$nombre];
 
-require_once __DIR__ . '/controladores/' . $clase . '.php';
-$controlador = new $clase();
+// Los errores internos de PHP no se muestran al usuario: se guardan en el
+// registro de errores de PHP (error_log) y la página muestra un aviso general.
+ini_set('display_errors', '0');
 
-// La acción tiene que ser un método público del controlador.
-if (!is_callable([$controlador, $accion])) {
-    http_response_code(404);
-    exit('Página no encontrada.');
+try {
+    require_once __DIR__ . '/controladores/' . $clase . '.php';
+    $controlador = new $clase();
+
+    // La acción tiene que ser un método público del controlador.
+    if (!is_callable([$controlador, $accion])) {
+        http_response_code(404);
+        exit('Página no encontrada.');
+    }
+
+    $controlador->$accion();
+} catch (Throwable $e) {
+    // Throwable incluye a Exception y también a los errores de PHP (por ejemplo
+    // un TypeError). Es el único lugar del sitio donde se atrapa todo.
+    error_log($e);
+    http_response_code(500);
+    exit('Ocurrió un error. Intenta de nuevo más tarde.');
 }
-
-$controlador->$accion();

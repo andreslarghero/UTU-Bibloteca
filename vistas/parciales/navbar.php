@@ -17,6 +17,13 @@
 // Variables que recibe: $usuarioMenu (el usuario con sesión, o null) y
 // $menuActivo (el identificador del enlace que se resalta).
 // ============================================================
+
+// Solo se muestra desde cabecera.php: si alguien abre este archivo escribiendo
+// su dirección, no se muestra nada.
+if (!isset($tituloPagina)) {
+    exit;
+}
+
 $nav_enlaces = $usuarioMenu ? $usuarioMenu->enlacesMenu() : Usuario::enlacesInvitado();
 ?>
     <!-- Aviso para la hoja de estilos de que hay JavaScript: agrega la clase

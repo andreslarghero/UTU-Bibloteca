@@ -2,8 +2,7 @@
 require_once __DIR__ . '/../config/Conexion.php';
 require_once __DIR__ . '/Repositorio.php';
 require_once __DIR__ . '/Venta.php';
-require_once __DIR__ . '/VentaMostrador.php';
-require_once __DIR__ . '/VentaDigital.php';
+require_once __DIR__ . '/LineaVenta.php';
 require_once __DIR__ . '/RepositorioLibros.php';
 
 // ============================================================
@@ -20,84 +19,105 @@ require_once __DIR__ . '/RepositorioLibros.php';
 class RepositorioVentas implements Repositorio
 {
     private PDO $pdo;
+    private RepositorioLibros $libros;
 
     public function __construct()
     {
         $this->pdo = Conexion::getConexion();
+        $this->libros = new RepositorioLibros();
     }
 
     // ---------- Registrar una venta ----------
+    // Cada registro se hace dentro de una transacción: o se guarda todo (commit)
+    // o no se guarda nada (rollback). Si algo no se puede vender se lanza una
+    // Exception con el mensaje para el usuario; el controlador la atrapa.
 
-    // Guarda la venta y sus líneas dentro de una transacción: o se guarda todo
-    // (commit) o no se guarda nada (rollback). Sirve para cualquier tipo de
-    // venta: lo que cambia de una a otra lo resuelve cada clase hija.
-    public function registrar(Venta $venta): ResultadoVenta
+    // Venta de la caja: el bibliotecario es el vendedor y el cliente es opcional.
+    // $lineas son las líneas del ticket. Cada libro se vuelve a leer de la base
+    // (con la fila bloqueada) y se cobra a su precio de la base, no al de la sesión.
+    // Devuelve el número de la venta.
+    public function registrarMostrador(int $vendedorId, ?int $clienteId, array $lineas): int
     {
-        $libros = new RepositorioLibros();
-        $venta->ordenarLineas();
-        $resultado = null;      // un problema que impide guardar (null = todo bien)
-        $ventaId = 0;
-        $total = 0;
+        ksort($lineas);   // se bloquean los libros siempre en el mismo orden
 
         try {
             $this->pdo->beginTransaction();
+            $ventaId = $this->crearVenta($clienteId, $vendedorId);
 
-            // 1. Vuelve a consultar cada libro en la base, sin confiar en lo que
-            //    mandó el navegador (con bloqueo de la fila).
-            foreach ($venta->getLineas() as $linea) {
-                $libro = $venta->bloquearLibro($libros, $linea);
-                $resultado = $venta->verificarLinea($linea, $libro, $this);
-                if ($resultado) {
-                    break;
+            foreach ($lineas as $linea) {
+                $libro = $this->libros->bloquear($linea->getLibroId());
+
+                if (!$libro || !$libro->estaActivo() || !$libro->esFisico()) {
+                    throw new Exception('Uno de los libros ya no está disponible: ' . $linea->getTitulo() . '.');
                 }
-                // El precio definitivo es el que tiene el libro en la base ahora.
-                $linea->fijarPrecio($venta->precioDe($libro), $libro->getTitulo());
-            }
-
-            // 2. Guarda la venta (la fecha la pone sola la base). El total no se
-            //    guarda: se calcula con las líneas (vista vw_ventas_detalle).
-            if (!$resultado) {
-                $total = $venta->calcularTotal();
-                $consulta = $this->pdo->prepare('INSERT INTO ventas (id_cliente, id_vendedor) VALUES (?, ?)');
-                $consulta->execute([$venta->getClienteId(), $venta->getVendedorId()]);
-                $ventaId = (int) $this->pdo->lastInsertId();
-
-                // 3. Guarda una línea por cada libro y se ocupa del stock.
-                $insertarLinea = $this->pdo->prepare(
-                    'INSERT INTO venta_lineas (venta_id, libro_id, cantidad, precio, formato) VALUES (?, ?, ?, ?, ?)');
-                foreach ($venta->getLineas() as $linea) {
-                    $insertarLinea->execute([
-                        $ventaId, $linea->getLibroId(), $linea->getCantidad(), $linea->getPrecio(), $venta->formato(),
-                    ]);
-                    $resultado = $venta->afectarStock($linea, $libros);
-                    if ($resultado) {
-                        break;
-                    }
+                if ($libro->getStock() < $linea->getCantidad()) {
+                    throw new Exception('Stock insuficiente para ' . $libro->getTitulo() . ' (quedan ' . $libro->getStock() . ').');
                 }
+
+                $this->libros->descontarStock($linea->getLibroId(), $linea->getCantidad());
+                $this->crearLinea($ventaId, $linea->getLibroId(), $linea->getCantidad(), $libro->getPrecio(), 'fisico');
             }
 
-            // 4. Si todo salió bien (o la compra ya estaba hecha) se confirma;
-            //    si algo falló se deshace todo.
-            if (!$resultado) {
-                $this->pdo->commit();
-                return new ResultadoVenta(ResultadoVenta::OK, '', $ventaId, $total);
-            }
-            if ($resultado->getEstado() === ResultadoVenta::YA_COMPRADO) {
-                $this->pdo->commit();
-            } else {
-                $this->pdo->rollBack();
-            }
-            return $resultado;
-        } catch (Throwable $e) {
-            // Cualquier error inesperado de la base: se deshace todo y se devuelve
-            // un aviso general, sin detalles internos de MySQL.
-            if ($this->pdo->inTransaction()) {
-                $this->pdo->rollBack();
-            }
-            return ResultadoVenta::error('No se pudo registrar la venta.');
+            $this->pdo->commit();
+            return $ventaId;
+        } catch (PDOException $e) {
+            $this->pdo->rollBack();
+            throw new Exception('No se pudo registrar la venta.');   // sin detalles internos de MySQL
+        } catch (Exception $e) {
+            $this->pdo->rollBack();
+            throw $e;
         }
     }
 
+    // Compra digital por la web: un libro, sin vendedor, sin tocar el stock.
+    // Devuelve el número de la venta, o 0 si el cliente ya tenía ese libro (no se
+    // cobra dos veces).
+    public function comprarDigital(int $clienteId, int $libroId): int
+    {
+        try {
+            $this->pdo->beginTransaction();
+            $libro = $this->libros->bloquear($libroId);
+
+            if (!$libro || !$libro->estaActivo() || !$libro->esDigital()
+                || $libro->getPrecioDigital() === null || $libro->getArchivoDigital() === null) {
+                throw new Exception('Este libro no está disponible en formato digital.');
+            }
+
+            if ($this->clienteCompro($clienteId, $libroId)) {
+                $this->pdo->rollBack();
+                return 0;
+            }
+
+            $ventaId = $this->crearVenta($clienteId, null);
+            $this->crearLinea($ventaId, $libroId, 1, $libro->getPrecioDigital(), 'digital');
+
+            $this->pdo->commit();
+            return $ventaId;
+        } catch (PDOException $e) {
+            $this->pdo->rollBack();
+            throw new Exception('No se pudo registrar la compra.');
+        } catch (Exception $e) {
+            $this->pdo->rollBack();
+            throw $e;
+        }
+    }
+
+    // Guarda la venta (la fecha la pone sola la base) y devuelve su número. El
+    // total no se guarda: se calcula con las líneas (vista vw_ventas_detalle).
+    private function crearVenta(?int $clienteId, ?int $vendedorId): int
+    {
+        $consulta = $this->pdo->prepare('INSERT INTO ventas (id_cliente, id_vendedor) VALUES (?, ?)');
+        $consulta->execute([$clienteId, $vendedorId]);
+        return (int) $this->pdo->lastInsertId();
+    }
+
+    // Guarda un libro dentro de la venta, con el precio al que se vendió.
+    private function crearLinea(int $ventaId, int $libroId, int $cantidad, $precio, string $formato): void
+    {
+        $consulta = $this->pdo->prepare(
+            'INSERT INTO venta_lineas (venta_id, libro_id, cantidad, precio, formato) VALUES (?, ?, ?, ?, ?)');
+        $consulta->execute([$ventaId, $libroId, $cantidad, $precio, $formato]);
+    }
     // ---------- Compras de un cliente ----------
 
     // ¿Este cliente ya compró este libro en formato digital?
@@ -142,7 +162,7 @@ class RepositorioVentas implements Repositorio
              WHERE id_cliente = ?
              ORDER BY fecha DESC, id DESC');
         $consulta->execute([$clienteId]);
-        return array_map([Venta::class, 'desdeFila'], $consulta->fetchAll());
+        return array_map(fn($f) => new Venta($f), $consulta->fetchAll());
     }
 
     // Una venta, pero solo si pertenece a este cliente (o null), con sus líneas.
@@ -173,7 +193,7 @@ class RepositorioVentas implements Repositorio
              ORDER BY venta_lineas.id");
         $lineas->execute([$ventaId, $clienteId]);
 
-        $venta = Venta::desdeFila($fila);
+        $venta = new Venta($fila);
         $venta->setLineas(array_map(fn($f) => new LineaVenta($f), $lineas->fetchAll()));
         return $venta;
     }
@@ -189,7 +209,7 @@ class RepositorioVentas implements Repositorio
             'SELECT id, fecha, total, id_cliente, id_vendedor, cliente, vendedor
              FROM vw_ventas_detalle
              ORDER BY fecha DESC, id DESC')->fetchAll();
-        return array_map([Venta::class, 'desdeFila'], $filas);
+        return array_map(fn($f) => new Venta($f), $filas);
     }
 
     // Una venta cualquiera con sus líneas (o null).
@@ -214,7 +234,7 @@ class RepositorioVentas implements Repositorio
              ORDER BY venta_lineas.id');
         $lineas->execute([$id]);
 
-        $venta = Venta::desdeFila($fila);
+        $venta = new Venta($fila);
         $venta->setLineas(array_map(fn($f) => new LineaVenta($f), $lineas->fetchAll()));
         return $venta;
     }

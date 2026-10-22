@@ -126,20 +126,17 @@ class LibroAdminController extends Controller
         $errores = array_merge($errores, $libro->validar($this->libros));
 
         // ---------- Formato digital: precio y archivo ----------
-        // $subida queda con los datos del archivo nuevo si se envió uno válido.
-        $subida = null;
-        $extension = '';
+        $subida = $_FILES['archivo'] ?? null;
+        $hayArchivoNuevo = ArchivoDigital::haySubida($subida);
 
         if ($libro->esDigital()) {
             $errores = array_merge($errores, $libro->validarPrecioDigital());
 
-            $resultado = ArchivoDigital::validarSubida($_FILES['archivo'] ?? null);
-
-            if ($resultado['error'] != '') {
-                $errores[] = $resultado['error'];
-            } elseif ($resultado['archivo']) {
-                $subida = $resultado['archivo'];
-                $extension = $resultado['extension'];
+            if ($hayArchivoNuevo) {
+                $error = ArchivoDigital::validarSubida($subida);
+                if ($error != '') {
+                    $errores[] = $error;
+                }
             } elseif ($archivoActual == '') {
                 // No se envió archivo y el libro tampoco tenía uno guardado.
                 $errores[] = 'Para el formato digital tienes que subir el archivo (PDF o EPUB).';
@@ -151,8 +148,8 @@ class LibroAdminController extends Controller
         $libro->setArchivoDigital($archivoActual);
         $archivoNuevo = '';   // nombre del archivo recién guardado, si hubo subida
 
-        if (count($errores) == 0 && $subida) {
-            $archivoNuevo = ArchivoDigital::guardar($subida, $extension);
+        if (count($errores) == 0 && $libro->esDigital() && $hayArchivoNuevo) {
+            $archivoNuevo = ArchivoDigital::guardar($subida);
 
             if ($archivoNuevo != '') {
                 $libro->setArchivoDigital($archivoNuevo);
@@ -160,39 +157,31 @@ class LibroAdminController extends Controller
                 $errores[] = 'No se pudo guardar el archivo digital.';
             }
         }
-
         if (count($errores) == 0) {
-            $guardado = false;
-
             try {
                 if ($libro->getId() == 0) {
                     // Alta: el libro nuevo queda activo.
-                    $guardado = $this->libros->crear($libro);
+                    $this->libros->crear($libro);
                     $aviso = 'Libro agregado: ' . $libro->getTitulo() . '.';
                 } else {
                     // Edición: se cambian los datos, pero nunca el id.
-                    $guardado = $this->libros->actualizar($libro);
+                    $this->libros->actualizar($libro);
                     $aviso = 'Libro actualizado: ' . $libro->getTitulo() . '.';
                 }
-            } catch (Throwable $e) {
-                // Error inesperado de la base: no se muestran detalles internos.
-                $guardado = false;
-            }
 
-            // Si el libro no se pudo guardar, el archivo recién subido no queda
-            // asociado a ningún libro: se quita de la carpeta.
-            if (!$guardado && $archivoNuevo != '') {
-                ArchivoDigital::quitar($archivoNuevo);
-            }
-
-            if ($guardado) {
                 // Guarda el aviso y recarga la página, para que al refrescar el
                 // navegador no se repita el guardado.
                 $this->guardarAviso('libros', $aviso);
                 $this->redirigir('libroadmin');
-            }
+            } catch (PDOException $e) {
+                // Error inesperado de la base: no se muestran detalles internos.
+                $errores[] = 'No se pudo guardar el libro.';
 
-            $errores[] = 'No se pudo guardar el libro.';
+                // El archivo recién subido no quedó asociado a ningún libro: se quita.
+                if ($archivoNuevo != '') {
+                    ArchivoDigital::quitar($archivoNuevo);
+                }
+            }
         }
 
         // Con errores, el formulario conserva lo que se escribió.

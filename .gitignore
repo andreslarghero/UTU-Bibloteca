@@ -45,3 +45,6 @@ venv/
 
 # Copias de seguridad generadas por sql/respaldos/respaldar.bat
 sql/respaldos/copias/
+
+# Configuracion local de la entrega: ruta de los archivos digitales fuera del sitio (ver preparar_entrega.ps1)
+config/ruta_digitales.php

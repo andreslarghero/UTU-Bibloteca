@@ -24,49 +24,11 @@ abstract class Controller
 
     // ---------- Sesión y permisos ----------
 
-    // Exige una sesión iniciada. Comprueba EN LA BASE, en cada petición, que el
-    // usuario sigue existiendo y sigue activo: no alcanza con mirar la sesión,
-    // porque sus datos se guardaron al iniciar sesión y pueden haber quedado
-    // viejos si después dieron de baja al usuario o le cambiaron el rol.
-    // Si no hay sesión o ya no es válida, manda al login y corta la página.
-    protected function requerirSesion(): Usuario
-    {
-        if (!isset($_SESSION['id'])) {
-            $this->redirigir('auth');
-        }
-
-        $usuario = $this->usuarios->buscar((int) $_SESSION['id']);
-
-        if (!$usuario || !$usuario->estaActivo()) {
-            $_SESSION = [];
-            session_destroy();
-            $this->redirigir('auth');
-        }
-
-        // Los datos de la sesión quedan con los que tiene ahora en la base.
-        $_SESSION['nombre'] = $usuario->getNombre();
-        $_SESSION['rol'] = $usuario->rol();
-
-        $this->usuario = $usuario;
-        return $usuario;
-    }
-
-    // Exige además que siga siendo bibliotecario. Si ya no lo es, pierde el acceso
-    // y vuelve al catálogo.
-    protected function requerirBibliotecario(): Usuario
-    {
-        $usuario = $this->requerirSesion();
-
-        if (!$usuario->esBibliotecario()) {
-            $this->redirigir('libro');
-        }
-
-        return $usuario;
-    }
-
-    // Para las páginas públicas (inicio, login, registro): si hay sesión, la
-    // conserva y deja el menú con el nombre y el rol de la base. Solo a un usuario
-    // dado de baja se le cierra la sesión. No exige iniciar sesión.
+    // El usuario de la sesión, comprobado EN LA BASE en cada petición: no alcanza
+    // con mirar la sesión, porque sus datos se guardaron al iniciar sesión y pueden
+    // haber quedado viejos si después dieron de baja al usuario o le cambiaron el
+    // rol. Devuelve null si no hay sesión; si el usuario ya no existe o está dado
+    // de baja, cierra la sesión y también devuelve null.
     protected function sesionOpcional(): ?Usuario
     {
         if (!isset($_SESSION['id'])) {
@@ -81,26 +43,38 @@ abstract class Controller
             return null;
         }
 
+        // Los datos de la sesión quedan con los que tiene ahora en la base.
         $_SESSION['nombre'] = $usuario->getNombre();
         $_SESSION['rol'] = $usuario->rol();
+
         $this->usuario = $usuario;
         return $usuario;
     }
 
-    // El usuario que dice la sesión, SIN consultar la base. Solo sirve para
-    // dibujar el menú en el login y el registro.
-    private function usuarioDeLaSesion(): ?Usuario
+    // Exige una sesión iniciada. Si no la hay (o ya no es válida), manda al login
+    // y corta la página.
+    protected function requerirSesion(): Usuario
     {
-        if (!isset($_SESSION['id'])) {
-            return null;
+        $usuario = $this->sesionOpcional();
+
+        if (!$usuario) {
+            $this->redirigir('auth');
         }
-        return Usuario::desdeFila([
-            'id' => $_SESSION['id'],
-            'nombre' => $_SESSION['nombre'] ?? '',
-            'correo' => '',
-            'rol' => $_SESSION['rol'] ?? Cliente::ROL,
-            'activo' => 1,
-        ]);
+
+        return $usuario;
+    }
+
+    // Exige además que siga siendo bibliotecario. Si ya no lo es, pierde el acceso
+    // y vuelve al catálogo.
+    protected function requerirBibliotecario(): Usuario
+    {
+        $usuario = $this->requerirSesion();
+
+        if (!$usuario->esBibliotecario()) {
+            $this->redirigir('libro');
+        }
+
+        return $usuario;
     }
 
     // ---------- Lo que envía el navegador ----------
@@ -184,7 +158,7 @@ abstract class Controller
     protected function render(string $vista, array $datos, string $menu, string $titulo, string $claseBody = ''): void
     {
         // Variables que usa la cabecera de todas las páginas.
-        $usuarioMenu = $this->usuario ?? $this->usuarioDeLaSesion();
+        $usuarioMenu = $this->usuario ?? $this->sesionOpcional();
         $menuActivo = $menu;
         $tituloPagina = $titulo;
         $__ruta = __DIR__ . '/../vistas/' . $vista . '.php';
