@@ -268,7 +268,9 @@ INSERT INTO libros (titulo, autor, anio, portada, categoria, stock, isbn, precio
 -- El cliente o el vendedor pueden quedar vacíos (NULL), por
 -- ejemplo en una venta de mostrador a alguien sin cuenta, pero
 -- no los dos a la vez. El canal no necesita una columna: una venta
--- sin vendedor es una compra por la web y una con vendedor es de mostrador.
+-- sin vendedor es una compra por la web (de un libro digital o de un libro
+-- físico, que el cliente retira en el mostrador) y una con vendedor es de
+-- mostrador (caja). Los libros físicos descuentan stock en los dos canales.
 -- Las claves foráneas usan ON DELETE RESTRICT: no se puede borrar
 -- un usuario que tiene ventas (el historial no se pierde). Los
 -- usuarios se dan de baja (activo = 0) en lugar de borrarse.

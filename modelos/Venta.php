@@ -4,8 +4,8 @@
 // Cada objeto es una fila de la vista vw_ventas_detalle: una venta
 // (cabecera) con su total, el cliente y el vendedor, más sus líneas
 // (LineaVenta), que se cargan aparte cuando hacen falta.
-// Una venta sin vendedor es una compra digital por la web; una con
-// vendedor es una venta de mostrador (caja).
+// Una venta sin vendedor es una compra por la web (digital o física); una
+// con vendedor es una venta de mostrador (caja).
 // ============================================================
 class Venta
 {

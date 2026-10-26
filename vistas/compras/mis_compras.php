@@ -31,7 +31,7 @@
             <tr>
                 <td><?php echo $fila->getId(); ?></td>
                 <td><?php echo date("d/m/Y H:i", strtotime($fila->getFecha())); ?></td>
-                <td><?php echo $fila->getVendedorNombre() ? htmlspecialchars($fila->getVendedorNombre()) : "Sin vendedor"; ?></td>
+                <td><?php echo $fila->getVendedorNombre() ? htmlspecialchars($fila->getVendedorNombre()) : "Compra online"; ?></td>
                 <td class="sin-corte">$ <?php echo formatearPrecio($fila->getTotal()); ?></td>
                 <td><a class="btn btn-primary btn-sm" href="<?php echo Ruta::h('compra', 'index', ['venta' => $fila->getId()]); ?>#detalle">Ver detalle</a></td>
             </tr>
@@ -52,7 +52,7 @@
             <h3>Detalle de la compra N.º <?php echo $venta->getId(); ?></h3>
             <p>
                 <strong>Fecha:</strong> <?php echo date("d/m/Y H:i", strtotime($venta->getFecha())); ?> &nbsp;
-                <strong>Vendedor:</strong> <?php echo $venta->getVendedorNombre() ? htmlspecialchars($venta->getVendedorNombre()) : "Sin vendedor"; ?>
+                <strong>Vendedor:</strong> <?php echo $venta->getVendedorNombre() ? htmlspecialchars($venta->getVendedorNombre()) : "Compra online"; ?>
             </p>
 
             <!-- Libros comprados: el subtotal es cantidad x precio unitario -->

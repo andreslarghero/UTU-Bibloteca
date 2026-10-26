@@ -8,8 +8,9 @@ require_once __DIR__ . '/RepositorioLibros.php';
 // ============================================================
 // MODELO: REPOSITORIO DE VENTAS
 // Tablas "ventas" y "venta_lineas". Aquí está la operación que
-// registra una venta (de mostrador o digital) dentro de una
-// transacción, y las consultas del historial.
+// registra una venta (de mostrador, o por la web en formato físico o
+// digital) dentro de una transacción, y las consultas del historial.
+// Una venta SIN vendedor es una compra por la web; con vendedor, de mostrador.
 //
 // IMPORTANTE: las consultas "del cliente" (mis compras y descargas)
 // siempre exigen el id del cliente. Las consultas "de todas" son solo
@@ -63,6 +64,48 @@ class RepositorioVentas implements Repositorio
         } catch (PDOException $e) {
             $this->pdo->rollBack();
             throw new Exception('No se pudo registrar la venta.');   // sin detalles internos de MySQL
+        } catch (Exception $e) {
+            $this->pdo->rollBack();
+            throw $e;
+        }
+    }
+
+    // Compra física por la web: un libro en papel y varias copias, sin vendedor.
+    // Igual que en la caja, el libro se vuelve a leer con la fila bloqueada, se
+    // cobra al precio de la base y se descuenta el stock (que nunca queda negativo).
+    // El cliente retira el libro en el mostrador. Devuelve el número de la venta.
+    public function comprarFisico(int $clienteId, int $libroId, int $cantidad): int
+    {
+        if ($cantidad < 1) {
+            throw new Exception('La cantidad tiene que ser al menos 1.');
+        }
+
+        try {
+            $this->pdo->beginTransaction();
+            $libro = $this->libros->bloquear($libroId);
+
+            if (!$libro || !$libro->estaActivo() || !$libro->esFisico()) {
+                throw new Exception('Este libro no está disponible en formato físico.');
+            }
+            if ($libro->getStock() < $cantidad) {
+                throw new Exception($libro->getStock() > 0
+                    ? 'Stock insuficiente para ' . $libro->getTitulo() . ' (quedan ' . $libro->getStock() . ').'
+                    : $libro->getTitulo() . ' está agotado.');
+            }
+
+            // Un solo descuento de stock por compra, dentro de la misma transacción.
+            if ($this->libros->descontarStock($libroId, $cantidad) != 1) {
+                throw new Exception('Stock insuficiente para ' . $libro->getTitulo() . '.');
+            }
+
+            $ventaId = $this->crearVenta($clienteId, null);
+            $this->crearLinea($ventaId, $libroId, $cantidad, $libro->getPrecio(), 'fisico');
+
+            $this->pdo->commit();
+            return $ventaId;
+        } catch (PDOException $e) {
+            $this->pdo->rollBack();
+            throw new Exception('No se pudo registrar la compra.');
         } catch (Exception $e) {
             $this->pdo->rollBack();
             throw $e;
@@ -134,7 +177,8 @@ class RepositorioVentas implements Repositorio
     // El libro que este cliente compró en digital y puede descargar (o null).
     // Exige a la vez: una venta de este cliente, con una línea de este libro en
     // formato digital, y que el libro tenga un archivo digital guardado. Una venta
-    // de mostrador (sin cliente) o una compra física no dan derecho a la descarga.
+    // de mostrador (sin cliente) o una compra física (en caja o por la web) no dan
+    // derecho a la descarga.
     public function libroDescargable(int $clienteId, int $libroId): ?Libro
     {
         $consulta = $this->pdo->prepare(

@@ -50,7 +50,11 @@
                         <?php } else { ?>
                             <span class="agotado">Agotado</span>
                         <?php } ?>
-                        <p class="ayuda">Se compra en el mostrador de la biblioteca.</p>
+                        <?php if ($libro->getStock() > 0) { ?>
+                            <!-- Lleva a la página de compra (se elige la cantidad); solo se envía el id del libro -->
+                            <p><a class="btn btn-success" data-espera href="<?php echo Ruta::h('compra', 'comprarFisico', ['libro' => $libro->getId()]); ?>">Comprar físico</a></p>
+                        <?php } ?>
+                        <p class="ayuda">Se compra por la web y se retira en el mostrador de la biblioteca (también se vende en la caja).</p>
                     </div>
                     <?php } ?>
 

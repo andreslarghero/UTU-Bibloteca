@@ -9,7 +9,7 @@
 
     <main>
         <h2>Consulta de operaciones</h2>
-        <p class="descripcion-pagina">Ventas de mostrador y compras digitales registradas. Es solo de consulta.</p>
+        <p class="descripcion-pagina">Ventas de mostrador y compras por la web (físicas y digitales) registradas. Es solo de consulta.</p>
 
         <?php if (count($ventas) == 0) { ?>
             <!-- Aviso si todavía no se registró ninguna venta -->
@@ -34,7 +34,7 @@
                 <td><?php echo date("d/m/Y H:i", strtotime($fila->getFecha())); ?></td>
                 <!-- Si la venta no tiene cliente, fue una venta de mostrador -->
                 <td><?php echo $fila->getClienteNombre() ? htmlspecialchars($fila->getClienteNombre()) : "Mostrador"; ?></td>
-                <td><?php echo $fila->getVendedorNombre() ? htmlspecialchars($fila->getVendedorNombre()) : "Sin vendedor"; ?></td>
+                <td><?php echo $fila->getVendedorNombre() ? htmlspecialchars($fila->getVendedorNombre()) : "Compra online"; ?></td>
                 <td>$ <?php echo formatearPrecio($fila->getTotal()); ?></td>
                 <td><a class="btn btn-primary btn-sm" href="<?php echo Ruta::h('operacion', 'index', ['venta' => $fila->getId()]); ?>#detalle">Ver detalle</a></td>
             </tr>
@@ -55,7 +55,7 @@
             <p>
                 <strong>Fecha:</strong> <?php echo date("d/m/Y H:i", strtotime($venta->getFecha())); ?> &nbsp;
                 <strong>Cliente:</strong> <?php echo $venta->getClienteNombre() ? htmlspecialchars($venta->getClienteNombre()) : "Mostrador"; ?> &nbsp;
-                <strong>Vendedor:</strong> <?php echo $venta->getVendedorNombre() ? htmlspecialchars($venta->getVendedorNombre()) : "Sin vendedor"; ?>
+                <strong>Vendedor:</strong> <?php echo $venta->getVendedorNombre() ? htmlspecialchars($venta->getVendedorNombre()) : "Compra online"; ?>
             </p>
 
             <!-- Libros vendidos: el subtotal es cantidad x precio unitario -->

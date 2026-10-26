@@ -131,6 +131,17 @@ class RepositorioLibros implements Repositorio
         return $this->aObjeto($consulta->fetch());
     }
 
+    // Un libro activo que se vende en formato físico, por su id (o null). Sirve
+    // para la compra física por la web; el stock lo vuelve a comprobar la compra.
+    public function fisicoDisponible(int $id): ?Libro
+    {
+        $consulta = $this->pdo->prepare(
+            'SELECT id, titulo, autor, precio, stock, formato_fisico FROM libros
+             WHERE id = ? AND activo = 1 AND formato_fisico = 1');
+        $consulta->execute([$id]);
+        return $this->aObjeto($consulta->fetch());
+    }
+
     // ---------- Dentro de una transacción de venta ----------
     // "FOR UPDATE" bloquea la fila hasta terminar la transacción, para que
     // otra venta no pueda gastar el mismo stock al mismo tiempo.

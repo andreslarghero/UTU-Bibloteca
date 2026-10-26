@@ -62,7 +62,7 @@
                 <div class="bloque">
                     <span class="icono"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5v-15z"/><path d="M4 20.5A2.5 2.5 0 0 0 6.5 23H20v-5"/></svg></span>
                     <h3>Libros físicos</h3>
-                    <p>Consulta precio y disponibilidad, y cómpralos en el mostrador.</p>
+                    <p>Consulta precio y disponibilidad, y cómpralos por la web o en el mostrador.</p>
                 </div>
                 <div class="bloque">
                     <span class="icono"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="6" y="2.5" width="12" height="19" rx="2"/><path d="M10 18.5h4"/></svg></span>
@@ -100,7 +100,7 @@
                 <li class="paso">
                     <span class="paso-numero">3</span>
                     <h3>Compra</h3>
-                    <p>El formato digital se compra desde la web; el físico, en el mostrador.</p>
+                    <p>Los dos formatos se compran desde la web; el físico también en el mostrador.</p>
                 </li>
                 <li class="paso">
                     <span class="paso-numero">4</span>

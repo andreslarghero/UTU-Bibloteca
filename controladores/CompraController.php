@@ -6,12 +6,14 @@ require_once __DIR__ . '/../modelos/RepositorioVentas.php';
 require_once __DIR__ . '/../modelos/ArchivoDigital.php';
 
 // ============================================================
-// CONTROLADOR: COMPRAS DIGITALES, MIS COMPRAS Y DESCARGAS
+// CONTROLADOR: COMPRAS POR LA WEB (FÍSICAS Y DIGITALES), MIS COMPRAS Y DESCARGAS
 // El comprador (o el dueño de las compras) es SIEMPRE el usuario de
 // la sesión: el id nunca se toma de la dirección ni de un formulario.
 // Acciones:
-//   comprar     muestra la confirmación de la compra de un libro digital
-//   confirmar   registra la compra (POST)
+//   comprar          muestra la confirmación de la compra de un libro digital
+//   confirmar        registra la compra digital (POST)
+//   comprarFisico    muestra la compra de un libro físico (se elige la cantidad)
+//   confirmarFisico  registra la compra física y descuenta el stock (POST)
 //   index       historial de compras del usuario y detalle de una
 //   descargar   entrega el archivo de un libro digital comprado
 // ============================================================
@@ -78,6 +80,49 @@ class CompraController extends Controller
         // se vuelve a enviar la compra.
         $this->guardarAviso('compra', $mensaje, $tipo);
         $this->redirigir('compra', 'comprar', ['libro' => $libroId]);
+    }
+
+    // ---------- Comprar un libro físico ----------
+
+    // Igual que la compra digital, pero el libro es de papel: se elige la cantidad
+    // (hasta el stock) y el cliente lo retira en el mostrador.
+    public function comprarFisico(): void
+    {
+        $this->requerirSesion();
+        $libroId = $this->entero($_GET['libro'] ?? null);
+        [$mensaje, $tipo] = $this->leerAviso('compra_fisica');
+
+        $this->render('compras/comprar_fisico', [
+            'libro' => (new RepositorioLibros())->fisicoDisponible($libroId),
+            'mensaje' => $mensaje,
+            'tipo' => $tipo,
+        ], 'libro', 'Comprar libro físico');
+    }
+
+    // Se ejecuta al confirmar. La cantidad llega del formulario, pero el precio y
+    // el stock se leen siempre de la base dentro de la transacción.
+    public function confirmarFisico(): void
+    {
+        $usuario = $this->requerirSesion();
+
+        if (!$this->esPost()) {
+            $this->redirigir('compra', 'comprarFisico');
+        }
+
+        $libroId = $this->entero($_POST['libro'] ?? null);
+        $cantidad = $this->entero($_POST['cantidad'] ?? null);
+
+        try {
+            $ventaId = $this->ventas->comprarFisico($usuario->getId(), $libroId, $cantidad);
+            $mensaje = 'Compra registrada. Venta N.º ' . $ventaId . '. Total: $ ' . number_format($this->ventas->buscar($ventaId)->getTotal(), 2, ',', '.') . '. Retira tu libro en el mostrador de la biblioteca.';
+            $tipo = 'exito';
+        } catch (Exception $e) {
+            $mensaje = $e->getMessage();
+            $tipo = 'error';
+        }
+
+        $this->guardarAviso('compra_fisica', $mensaje, $tipo);
+        $this->redirigir('compra', 'comprarFisico', ['libro' => $libroId]);
     }
 
     // ---------- Mis compras ----------
