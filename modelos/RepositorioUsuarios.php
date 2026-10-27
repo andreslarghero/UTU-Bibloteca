@@ -19,7 +19,7 @@ class RepositorioUsuarios implements Repositorio
 
     public function __construct()
     {
-        $this->pdo = Conexion::getConexion();
+        $this->pdo = Conexion::obtener();
     }
 
     // Todos los usuarios, activos e inactivos.

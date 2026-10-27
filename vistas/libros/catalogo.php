@@ -25,14 +25,14 @@
             <!-- Desplegable con las categorías de la base; queda marcada la elegida -->
             <label class="solo-lectores" for="categoria">Categoría</label>
             <select id="categoria" name="categoria">
-                <option value="">Todas las categorías</option>
+                <option value="0">Todas las categorías</option>
                 <?php foreach ($categorias as $cat) { ?>
-                    <option value="<?php echo htmlspecialchars($cat); ?>" <?php if ($categoria == $cat) echo "selected"; ?>><?php echo htmlspecialchars($cat); ?></option>
+                    <option value="<?php echo $cat->getId(); ?>" <?php if ($categoria == $cat->getId()) echo "selected"; ?>><?php echo htmlspecialchars($cat->getNombre()); ?></option>
                 <?php } ?>
             </select>
             <button class="btn btn-primary" type="submit">Buscar</button>
             <!-- Enlace para quitar la búsqueda y el filtro, solo aparece si hay alguno -->
-            <?php if ($buscar != "" || $categoria != "") { ?>
+            <?php if ($buscar != "" || $categoria != 0) { ?>
                 <a href="<?php echo Ruta::h('libro'); ?>">Ver todos</a>
             <?php } ?>
         </form>
@@ -40,7 +40,7 @@
         <!-- Aviso cuando la búsqueda o el filtro no encuentran ningún libro -->
         <?php if (count($libros) == 0) { ?>
             <p class="sin-resultados">
-                No se encontraron libros<?php if ($buscar != "") { ?> para "<?php echo htmlspecialchars($buscar); ?>"<?php } ?><?php if ($categoria != "") { ?> en la categoría "<?php echo htmlspecialchars($categoria); ?>"<?php } ?>.
+                No se encontraron libros<?php if ($buscar != "") { ?> para "<?php echo htmlspecialchars($buscar); ?>"<?php } ?><?php if ($categoria != 0) { ?> en la categoría "<?php echo htmlspecialchars($categoriaNombre); ?>"<?php } ?>.
             </p>
         <?php } ?>
 

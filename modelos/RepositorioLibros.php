@@ -14,7 +14,7 @@ class RepositorioLibros implements Repositorio
 
     public function __construct()
     {
-        $this->pdo = Conexion::getConexion();
+        $this->pdo = Conexion::obtener();
     }
 
     // Convierte una fila (o null) en un objeto Libro (o null).
@@ -25,68 +25,45 @@ class RepositorioLibros implements Repositorio
 
     // ---------- Catálogo y ficha ----------
 
-    // Un libro ACTIVO (o null). Para la ficha.
+    // Un libro ACTIVO con el nombre de su categoría (o null). Para la ficha.
     public function activoPorId(int $id): ?Libro
     {
-        $consulta = $this->pdo->prepare('SELECT * FROM libros WHERE id = ? AND activo = 1');
+        $consulta = $this->pdo->prepare(
+            'SELECT libros.*, categorias.nombre AS categoria FROM libros
+             JOIN categorias ON categorias.id = libros.categoria_id
+             WHERE libros.id = ? AND libros.activo = 1');
         $consulta->execute([$id]);
         return $this->aObjeto($consulta->fetch());
     }
 
-    // El catálogo: los libros activos con su valoración media y el número de
-    // reseñas. Los datos salen de la vista vw_catalogo (que ya hace el LEFT JOIN
-    // con resenias); aquí solo se filtra.
+    // El catálogo: los libros activos con su categoría, su valoración media y
+    // el número de reseñas. Los datos salen de la vista vw_catalogo (que ya hace
+    // el JOIN con categorias y el LEFT JOIN con resenias); aquí solo se filtra.
     //  - Búsqueda: los % permiten encontrar el texto en cualquier parte del
     //    título o del autor. Con "" queda "%%", que coincide con todos.
-    //  - Categoría: "? = ''" hace que con "" (todas) no se filtre por categoría.
-    public function catalogo(string $buscar, string $categoria): array
+    //  - Categoría: "? = 0" hace que con 0 (todas) no se filtre por categoría.
+    public function catalogo(string $buscar, int $categoria): array
     {
         $texto = '%' . $buscar . '%';
         $consulta = $this->pdo->prepare(
-            "SELECT * FROM vw_catalogo
+            'SELECT * FROM vw_catalogo
              WHERE (titulo LIKE ? OR autor LIKE ?)
-               AND (? = '' OR categoria = ?)
-             ORDER BY id");
+               AND (? = 0 OR categoria_id = ?)
+             ORDER BY id');
         $consulta->execute([$texto, $texto, $categoria, $categoria]);
         return array_map([$this, 'aObjeto'], $consulta->fetchAll());
     }
 
-    // ---------- Categorías (salen de los propios libros) ----------
-
-    // Las categorías que hay en la tabla libros, sin repetir y ordenadas.
-    // Con $soloActivas = true solo cuenta la de los libros que están en el catálogo.
-    public function categorias(bool $soloActivas = false): array
-    {
-        $donde = $soloActivas ? 'WHERE activo = 1' : '';
-        return $this->pdo->query("SELECT DISTINCT categoria FROM libros $donde ORDER BY categoria")
-            ->fetchAll(PDO::FETCH_COLUMN);
-    }
-
-    // Devuelve el nombre con el que ya está escrita esa categoría (la comparación
-    // no distingue mayúsculas ni tildes: "ficcion" encuentra "Ficción"), para que
-    // no queden dos grafías de la misma categoría. Si es nueva, se guarda con la
-    // primera letra en mayúscula.
-    public function nombreCategoria(string $texto): string
-    {
-        if ($texto == '') {
-            return '';
-        }
-        $consulta = $this->pdo->prepare('SELECT categoria FROM libros WHERE categoria = ? LIMIT 1');
-        $consulta->execute([$texto]);
-        $existente = $consulta->fetchColumn();
-        return $existente !== false ? $existente : mb_strtoupper(mb_substr($texto, 0, 1)) . mb_substr($texto, 1);
-    }
-
     // Hasta 4 libros activos de la misma categoría, sin contar $id.
-    public function relacionados(string $categoria, int $id): array
+    public function relacionados(int $categoriaId, int $id): array
     {
         $consulta = $this->pdo->prepare(
             'SELECT id, titulo, autor, portada, formato_fisico, precio, precio_digital
              FROM libros
-             WHERE categoria = ? AND id <> ? AND activo = 1
+             WHERE categoria_id = ? AND id <> ? AND activo = 1
              ORDER BY id
              LIMIT 4');
-        $consulta->execute([$categoria, $id]);
+        $consulta->execute([$categoriaId, $id]);
         return array_map([$this, 'aObjeto'], $consulta->fetchAll());
     }
 
@@ -106,15 +83,6 @@ class RepositorioLibros implements Repositorio
         $consulta = $this->pdo->prepare(
             'SELECT id, titulo, precio, stock, formato_fisico FROM libros
              WHERE codigo_barras = ? AND activo = 1 AND formato_fisico = 1');
-        $consulta->execute([$codigo]);
-        return $this->aObjeto($consulta->fetch());
-    }
-
-    // Cualquier libro con ese código de barras (o null). El servicio STEAM lo usa
-    // para saber si un código pertenece a un libro solo digital.
-    public function porCodigo(string $codigo): ?Libro
-    {
-        $consulta = $this->pdo->prepare('SELECT id, titulo, formato_fisico FROM libros WHERE codigo_barras = ?');
         $consulta->execute([$codigo]);
         return $this->aObjeto($consulta->fetch());
     }
@@ -166,14 +134,16 @@ class RepositorioLibros implements Repositorio
 
     // ---------- Gestión (bibliotecario) ----------
 
-    // Todos los libros, activos e inactivos.
+    // Todos los libros, activos e inactivos, con el nombre de su categoría.
     public function todos(): array
     {
         $filas = $this->pdo->query(
-            'SELECT id, titulo, autor, isbn, precio, stock, activo,
-                    formato_fisico, formato_digital, precio_digital, categoria
+            'SELECT libros.id, libros.titulo, libros.autor, libros.isbn, libros.precio, libros.stock, libros.activo,
+                    libros.formato_fisico, libros.formato_digital, libros.precio_digital,
+                    categorias.nombre AS categoria
              FROM libros
-             ORDER BY titulo')->fetchAll();
+             JOIN categorias ON categorias.id = libros.categoria_id
+             ORDER BY libros.titulo')->fetchAll();
         return array_map([$this, 'aObjeto'], $filas);
     }
 
@@ -214,7 +184,7 @@ class RepositorioLibros implements Repositorio
     {
         $d = $libro->aFila();
         $consulta = $this->pdo->prepare(
-            'INSERT INTO libros (titulo, autor, anio, portada, descripcion, categoria, isbn, precio, codigo_barras, stock,
+            'INSERT INTO libros (titulo, autor, anio, portada, descripcion, categoria_id, isbn, precio, codigo_barras, stock,
                                  formato_fisico, formato_digital, precio_digital, archivo_digital, activo)
              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)');
         return $consulta->execute(array_values($d));
@@ -225,7 +195,7 @@ class RepositorioLibros implements Repositorio
     {
         $d = $libro->aFila();
         $consulta = $this->pdo->prepare(
-            'UPDATE libros SET titulo = ?, autor = ?, anio = ?, portada = ?, descripcion = ?, categoria = ?,
+            'UPDATE libros SET titulo = ?, autor = ?, anio = ?, portada = ?, descripcion = ?, categoria_id = ?,
                     isbn = ?, precio = ?, codigo_barras = ?, stock = ?,
                     formato_fisico = ?, formato_digital = ?, precio_digital = ?, archivo_digital = ?
              WHERE id = ?');

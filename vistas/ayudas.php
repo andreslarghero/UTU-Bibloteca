@@ -9,16 +9,15 @@
 // Versiones de la hoja de estilos y del JavaScript. Al cambiar un
 // archivo se sube el número aquí (un solo lugar) y los navegadores
 // descargan la versión nueva.
-define("CSS_VERSION", 30);
+define("CSS_VERSION", 38);
 define("JS_VERSION", 9);
 
 // La validación del archivo de portada es del modelo (clase Portada).
 require_once __DIR__ . "/../modelos/Portada.php";
-require_once __DIR__ . "/../config/Texto.php";
 
 // Precio con el formato del sitio: 1.234,50
 function formatearPrecio($precio) {
-    return Texto::precio($precio);
+    return number_format((float) $precio, 2, ',', '.');
 }
 
 // Convierte un número (1 a 5) en estrellas llenas y vacías, por ejemplo 3 = ★★★☆☆.

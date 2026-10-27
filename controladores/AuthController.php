@@ -4,25 +4,28 @@ require_once __DIR__ . '/Controller.php';
 // ============================================================
 // CONTROLADOR: INICIO DE SESIÓN, REGISTRO Y CIERRE DE SESIÓN
 // Acciones:
-//   index      muestra el formulario de inicio de sesión
-//   entrar     comprueba el correo y la contraseña (POST) y abre la sesión
+//   login      muestra el formulario de inicio de sesión y, al enviarlo (POST),
+//              comprueba el correo y la contraseña y abre la sesión
 //   registro   muestra el formulario de registro
 //   registrar  crea la cuenta (POST)
-//   salir      cierra la sesión
+//   logout     cierra la sesión
 // ============================================================
 class AuthController extends Controller
 {
     // ---------- Inicio de sesión ----------
 
+    // Acción por defecto del controlador: lleva al login.
     public function index(): void
     {
-        $this->mostrarLogin();
+        $this->login();
     }
 
-    public function entrar(): void
+    // accion: login (muestra el formulario y procesa el envío)
+    public function login(): void
     {
         if (!$this->esPost()) {
-            $this->redirigir('auth');
+            $this->mostrarLogin();
+            return;
         }
 
         $correo = $this->post('correo');
@@ -37,9 +40,7 @@ class AuthController extends Controller
         // muestra el mismo aviso que a una contraseña incorrecta, sin dar pistas.
         if ($usuario && $usuario->estaActivo() && $claveCifrada !== null && password_verify($clave, $claveCifrada)) {
             // Guarda los datos del usuario en la sesión y lo lleva al catálogo.
-            $_SESSION['id'] = $usuario->getId();
-            $_SESSION['nombre'] = $usuario->getNombre();
-            $_SESSION['rol'] = $usuario->rol();   // "cliente" o "bibliotecario"
+            Sesion::login($usuario);
 
             $this->redirigir('libro');
         }
@@ -96,7 +97,7 @@ class AuthController extends Controller
                 $this->usuarios->crear($nombre, $correo, password_hash($clave, PASSWORD_DEFAULT));
 
                 // Lleva al login con un aviso de que la cuenta se creó.
-                $this->redirigir('auth', 'index', ['registrado' => 1]);
+                $this->redirigir('auth', 'login', ['registrado' => 1]);
             } catch (PDOException $e) {
                 $mensaje = 'No se pudo crear la cuenta.';
             }
@@ -114,9 +115,10 @@ class AuthController extends Controller
 
     // Elimina todos los datos de la sesión (el usuario deja de estar conectado) y
     // lo devuelve al login.
-    public function salir(): void
+    // accion: logout
+    public function logout(): void
     {
-        session_destroy();
-        $this->redirigir('auth');
+        Sesion::logout();
+        $this->redirigir('auth', 'login');
     }
 }

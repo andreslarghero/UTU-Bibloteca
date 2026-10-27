@@ -1,46 +1,47 @@
 -- ============================================================
 -- CHECKLIST ANTES Y DESPUÉS DE UN BACKUP
--- Se ejecuta con una cuenta de administración (en XAMPP, "root").
+-- Se ejecuta con una cuenta de administración (en XAMPP, "root"), eligiendo la
+-- base a revisar (la original o una copia restaurada):
+--   mysql -u root biblioteca < verificar_checklist.sql
+--   mysql -u root biblioteca_restore < verificar_checklist.sql
 -- Sirve para revisar que la base está lista para copiarse y que, después de
 -- restaurar una copia, quedó igual. Cada punto corresponde a una línea del
 -- checklist visto en clase.
 -- ============================================================
 
-USE biblioteca;
-
 -- 1. Motor de almacenamiento: tiene que ser InnoDB (transacciones, claves
 --    foráneas y copia en caliente con --single-transaction).
 SELECT TABLE_NAME, ENGINE
 FROM information_schema.TABLES
-WHERE TABLE_SCHEMA = 'biblioteca' AND TABLE_TYPE = 'BASE TABLE'
+WHERE TABLE_SCHEMA = DATABASE() AND TABLE_TYPE = 'BASE TABLE'
 ORDER BY TABLE_NAME;
 
 -- 2 y 3. Juego de caracteres y collation: utf8mb4 y utf8mb4_unicode_ci.
 SELECT TABLE_NAME, TABLE_COLLATION
 FROM information_schema.TABLES
-WHERE TABLE_SCHEMA = 'biblioteca' AND TABLE_TYPE = 'BASE TABLE'
+WHERE TABLE_SCHEMA = DATABASE() AND TABLE_TYPE = 'BASE TABLE'
 ORDER BY TABLE_NAME;
 
 SELECT DEFAULT_CHARACTER_SET_NAME AS charset_base, DEFAULT_COLLATION_NAME AS collation_base
 FROM information_schema.SCHEMATA
-WHERE SCHEMA_NAME = 'biblioteca';
+WHERE SCHEMA_NAME = DATABASE();
 
 -- 4. Claves primarias, únicas y foráneas (con su acción referencial).
 SELECT TABLE_NAME, CONSTRAINT_TYPE, CONSTRAINT_NAME
 FROM information_schema.TABLE_CONSTRAINTS
-WHERE TABLE_SCHEMA = 'biblioteca' AND CONSTRAINT_TYPE IN ('PRIMARY KEY', 'UNIQUE', 'FOREIGN KEY')
+WHERE TABLE_SCHEMA = DATABASE() AND CONSTRAINT_TYPE IN ('PRIMARY KEY', 'UNIQUE', 'FOREIGN KEY')
 ORDER BY TABLE_NAME, CONSTRAINT_TYPE, CONSTRAINT_NAME;
 
 SELECT CONSTRAINT_NAME, TABLE_NAME, REFERENCED_TABLE_NAME, DELETE_RULE, UPDATE_RULE
 FROM information_schema.REFERENTIAL_CONSTRAINTS
-WHERE CONSTRAINT_SCHEMA = 'biblioteca'
+WHERE CONSTRAINT_SCHEMA = DATABASE()
 ORDER BY TABLE_NAME;
 
 -- 5. Objetos programados: vistas, triggers, procedimientos y eventos.
-SELECT TABLE_NAME AS vista FROM information_schema.VIEWS WHERE TABLE_SCHEMA = 'biblioteca';
-SELECT TRIGGER_NAME FROM information_schema.TRIGGERS WHERE TRIGGER_SCHEMA = 'biblioteca';
-SELECT ROUTINE_NAME FROM information_schema.ROUTINES WHERE ROUTINE_SCHEMA = 'biblioteca';
-SELECT EVENT_NAME FROM information_schema.EVENTS WHERE EVENT_SCHEMA = 'biblioteca';
+SELECT TABLE_NAME AS vista FROM information_schema.VIEWS WHERE TABLE_SCHEMA = DATABASE();
+SELECT TRIGGER_NAME FROM information_schema.TRIGGERS WHERE TRIGGER_SCHEMA = DATABASE();
+SELECT ROUTINE_NAME FROM information_schema.ROUTINES WHERE ROUTINE_SCHEMA = DATABASE();
+SELECT EVENT_NAME FROM information_schema.EVENTS WHERE EVENT_SCHEMA = DATABASE();
 
 -- 6. Seguridad y accesos: usuarios, permisos y roles (se respaldan aparte).
 SELECT user, host FROM mysql.user WHERE user LIKE 'nexora%';
@@ -60,6 +61,7 @@ SELECT COUNT(*) AS transacciones_abiertas FROM information_schema.INNODB_TRX;
 -- lista. Se anotan antes del backup y se comparan después de restaurar.
 -- ------------------------------------------------------------
 SELECT 'usuarios' AS tabla, COUNT(*) AS filas FROM usuarios
+UNION ALL SELECT 'categorias', COUNT(*) FROM categorias
 UNION ALL SELECT 'libros', COUNT(*) FROM libros
 UNION ALL SELECT 'ventas', COUNT(*) FROM ventas
 UNION ALL SELECT 'venta_lineas', COUNT(*) FROM venta_lineas
@@ -74,4 +76,5 @@ WHERE ventas.id IS NULL;
 
 SELECT libros.id AS libro_sin_categoria
 FROM libros
-WHERE libros.categoria IS NULL OR TRIM(libros.categoria) = '';
+LEFT JOIN categorias ON categorias.id = libros.categoria_id
+WHERE categorias.id IS NULL;

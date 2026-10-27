@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/Controller.php';
 require_once __DIR__ . '/../modelos/RepositorioLibros.php';
+require_once __DIR__ . '/../modelos/RepositorioCategorias.php';
 require_once __DIR__ . '/../modelos/RepositorioResenas.php';
 require_once __DIR__ . '/../modelos/RepositorioVentas.php';
 
@@ -27,27 +28,26 @@ class LibroController extends Controller
 
     // ---------- Catálogo ----------
 
-    // Los dos filtros llegan por la dirección: ?buscar=texto&categoria=Fábula
+    // Los dos filtros llegan por la dirección: ?buscar=texto&categoria=3
     // Se pueden usar por separado o juntos.
     public function index(): void
     {
         $this->requerirSesion();
 
-        // Las categorías (las que tienen los libros del catálogo) sirven para el
-        // desplegable del filtro y para comprobar la que llega por la dirección.
-        $categorias = $this->libros->categorias(true);
+        // Las categorías sirven para el desplegable del filtro y para comprobar
+        // que la categoría que llega por la dirección existe.
+        $repoCategorias = new RepositorioCategorias();
+        $categorias = $repoCategorias->todos();
 
         // Texto de búsqueda (vacío = sin búsqueda).
         $buscar = $this->get('buscar');
 
-        // Categoría elegida ("" = todas). Solo se acepta una que exista en el
-        // catálogo (sin distinguir mayúsculas); cualquier otra cosa se trata como "todas".
-        $categoria = '';
-        $pedida = mb_strtolower($this->get('categoria'));
-        foreach ($categorias as $nombre) {
-            if (mb_strtolower($nombre) == $pedida) {
-                $categoria = $nombre;
-            }
+        // Categoría elegida (0 = todas). Solo se acepta un número que sea el id de
+        // una categoría que existe; cualquier otra cosa se trata como "todas".
+        $categoria = $this->entero($_GET['categoria'] ?? null);
+        $categoriaElegida = $repoCategorias->buscar($categoria);
+        if (!$categoriaElegida) {
+            $categoria = 0;
         }
 
         // Una sola consulta sirve para todos los casos. Los libros se usan dos
@@ -56,7 +56,7 @@ class LibroController extends Controller
 
         // Los destacados solo se muestran en el catálogo completo (sin búsqueda ni filtro).
         $destacados = [];
-        if ($buscar == '' && $categoria == '' && count($libros) >= 3) {
+        if ($buscar == '' && $categoria == 0 && count($libros) >= 3) {
             $destacados = $this->elegirDestacados($libros);
         }
 
@@ -64,6 +64,7 @@ class LibroController extends Controller
             'categorias' => $categorias,
             'buscar' => $buscar,
             'categoria' => $categoria,
+            'categoriaNombre' => $categoriaElegida ? $categoriaElegida->getNombre() : '',
             'libros' => $libros,
             'destacados' => $destacados,
         ], 'libro', 'Catálogo');
@@ -94,9 +95,9 @@ class LibroController extends Controller
         // Primera pasada: un libro por categoría, para que haya variedad.
         $categoriasUsadas = [];
         foreach ($intercalados as $libro) {
-            if (count($destacados) < 10 && !isset($categoriasUsadas[$libro->getCategoria()])) {
+            if (count($destacados) < 10 && !isset($categoriasUsadas[$libro->getCategoriaId()])) {
                 $destacados[$libro->getId()] = $libro;
-                $categoriasUsadas[$libro->getCategoria()] = true;
+                $categoriasUsadas[$libro->getCategoriaId()] = true;
             }
         }
         // Segunda pasada: se completa hasta 10 con los que siguen.
@@ -141,7 +142,7 @@ class LibroController extends Controller
             }
 
             // También podría interesarte: hasta 4 libros de la misma categoría.
-            $relacionados = $this->libros->relacionados($libro->getCategoria(), $id);
+            $relacionados = $this->libros->relacionados($libro->getCategoriaId(), $id);
         }
 
         $this->render('libros/ver', [

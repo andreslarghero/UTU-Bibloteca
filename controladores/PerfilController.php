@@ -69,7 +69,7 @@ class PerfilController extends Controller
                 $this->usuarios->actualizar($id, $nombre, $correo, $usuario->rol(), $claveNueva);
 
                 // Actualiza el nombre de la sesión para que el saludo cambie enseguida.
-                $_SESSION['nombre'] = $nombre;
+                Sesion::actualizar($nombre, $usuario->rol());
 
                 // Guarda el aviso y recarga la página, para que al refrescar el
                 // navegador no se repita el guardado.

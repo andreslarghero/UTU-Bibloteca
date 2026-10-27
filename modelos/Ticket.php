@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/../config/Sesion.php';
 require_once __DIR__ . '/LineaVenta.php';
 require_once __DIR__ . '/Libro.php';
 
@@ -17,7 +18,7 @@ class Ticket
     public static function desdeSesion(): Ticket
     {
         $ticket = new Ticket();
-        foreach (($_SESSION['ticket'] ?? []) as $id => $datos) {
+        foreach (Sesion::dato('ticket', []) as $id => $datos) {
             $ticket->lineas[(int) $id] = new LineaVenta($datos);
         }
         return $ticket;
@@ -26,15 +27,16 @@ class Ticket
     // Guarda el ticket en la sesión.
     public function guardar(): void
     {
-        $_SESSION['ticket'] = [];
+        $guardado = [];
         foreach ($this->lineas as $id => $linea) {
-            $_SESSION['ticket'][$id] = [
+            $guardado[$id] = [
                 'libro_id' => $linea->getLibroId(),
                 'titulo' => $linea->getTitulo(),
                 'precio' => $linea->getPrecio(),
                 'cantidad' => $linea->getCantidad(),
             ];
         }
+        Sesion::guardar('ticket', $guardado);
     }
 
     // Cuántas copias de este libro ya hay en el ticket.

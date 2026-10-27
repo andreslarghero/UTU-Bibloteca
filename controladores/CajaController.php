@@ -1,10 +1,8 @@
 <?php
 require_once __DIR__ . '/Controller.php';
-require_once __DIR__ . '/../config/Texto.php';
 require_once __DIR__ . '/../modelos/RepositorioLibros.php';
 require_once __DIR__ . '/../modelos/RepositorioVentas.php';
 require_once __DIR__ . '/../modelos/Ticket.php';
-require_once __DIR__ . '/../modelos/Steam.php';
 
 // ============================================================
 // CONTROLADOR: CAJA DEL MOSTRADOR
@@ -22,10 +20,6 @@ require_once __DIR__ . '/../modelos/Steam.php';
 //   finalizar  guarda la venta (POST)
 // Después de cada acción se redirige a "index" (así, si se refresca el
 // navegador, no se repite el último escaneo).
-//
-// STEAM (lector físico con Arduino): la clase Steam avisa al Arduino el
-// resultado de cada escaneo. Es una salida adicional: si STEAM no está
-// disponible no hace nada y la caja funciona igual.
 // ============================================================
 class CajaController extends Controller
 {
@@ -70,17 +64,8 @@ class CajaController extends Controller
 
             if (!$libro) {
                 $mensaje = 'Libro no encontrado (código ' . $codigo . ').';
-
-                // STEAM: avisa "no encontrado", salvo que el código sea de un libro
-                // solo digital (el lector físico no trabaja con esos).
-                if (!Steam::esSoloDigital($codigo)) {
-                    Steam::avisarNoEncontrado();
-                }
             } elseif ($libro->getStock() == 0) {
                 $mensaje = 'Libro agotado: ' . $libro->getTitulo() . '.';
-
-                // STEAM: avisa que el libro no tiene stock.
-                Steam::avisarAgotado($libro->getTitulo());
             } else {
                 $ticket = Ticket::desdeSesion();
 
@@ -94,9 +79,6 @@ class CajaController extends Controller
                     $ticket->guardar();
                     $mensaje = 'Agregado: ' . $libro->getTitulo() . '.';
                     $tipo = 'exito';
-
-                    // STEAM: muestra el título y el precio real del libro.
-                    Steam::avisarEncontrado($libro->getTitulo(), $libro->getPrecio());
                 }
             }
         }
@@ -175,7 +157,7 @@ class CajaController extends Controller
                 // Venta guardada: se vacía el ticket y se avisa con el número y el total.
                 $ticket->vaciar();
                 $ticket->guardar();
-                $mensaje = 'Venta registrada correctamente. Venta N.º ' . $ventaId . '. Total vendido: $ ' . Texto::precio($ventas->buscar($ventaId)->getTotal()) . '.';
+                $mensaje = 'Venta registrada correctamente. Venta N.º ' . $ventaId . '. Total vendido: $ ' . number_format($ventas->buscar($ventaId)->getTotal(), 2, ',', '.') . '.';
                 $tipo = 'exito';
             } catch (Exception $e) {
                 // El ticket se conserva para poder corregirlo.

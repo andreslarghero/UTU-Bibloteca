@@ -1,6 +1,5 @@
 <?php
 require_once __DIR__ . '/Controller.php';
-require_once __DIR__ . '/../config/Texto.php';
 require_once __DIR__ . '/../modelos/RepositorioLibros.php';
 require_once __DIR__ . '/../modelos/RepositorioVentas.php';
 require_once __DIR__ . '/../modelos/ArchivoDigital.php';
@@ -68,7 +67,7 @@ class CompraController extends Controller
             if ($ventaId == 0) {
                 $mensaje = 'Ya tienes este libro digital en Mis compras.';
             } else {
-                $mensaje = 'Compra registrada. Venta N.º ' . $ventaId . '. Total: $ ' . Texto::precio($this->ventas->buscar($ventaId)->getTotal()) . '.';
+                $mensaje = 'Compra registrada. Venta N.º ' . $ventaId . '. Total: $ ' . number_format($this->ventas->buscar($ventaId)->getTotal(), 2, ',', '.') . '.';
             }
             $tipo = 'exito';
         } catch (Exception $e) {
@@ -169,15 +168,15 @@ class CompraController extends Controller
         // este libro, en formato digital, y que el libro tenga un archivo guardado.
         $libro = $this->ventas->libroDescargable($usuario->getId(), $libroId);
 
-        // El mismo aviso sirve si el libro no existe, si no es digital o si es de
-        // otra persona: así no se revela cuál es el caso.
+        // Errores: 404 si el libro no existe (o su archivo no está) y 403 si el
+        // usuario no tiene derecho a descargarlo. Solo se muestra un texto simple.
         $ruta = $libro ? ArchivoDigital::ruta($libro->getArchivoDigital()) : false;
 
         if ($ruta === false) {
-            http_response_code($libro ? 404 : 403);
-            $error = $libro ? 'El archivo de este libro no está disponible en este momento.' : 'No puedes descargar este libro.';
-            $this->render('compras/descarga_error', ['error' => $error], 'compra', 'Descarga');
-            return;
+            $existe = (new RepositorioLibros())->buscar($libroId) !== null;
+            http_response_code(($libro || !$existe) ? 404 : 403);
+            header('Content-Type: text/plain; charset=UTF-8');
+            exit($libro ? 'El archivo de este libro no está disponible en este momento.' : ($existe ? 'No puedes descargar este libro.' : 'El libro no existe.'));
         }
 
         // Nombre con el que se guarda en el equipo del usuario: el título del libro
@@ -186,7 +185,7 @@ class CompraController extends Controller
         // "filename*" con el título completo en UTF-8.
         $extension = pathinfo($ruta, PATHINFO_EXTENSION);
         $titulo = trim(preg_replace('/[^\p{L}\p{N} _-]/u', '', $libro->getTitulo()));
-        $simple = trim(preg_replace('/[^A-Za-z0-9 _-]/', '', Texto::sinTildes($titulo)));
+        $simple = trim(preg_replace('/[^A-Za-z0-9 _-]/', '', $libro->tituloSimple()));
         if ($simple == '') {
             $titulo = $simple = 'libro';
         }

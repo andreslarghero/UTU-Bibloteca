@@ -18,38 +18,35 @@
 <body>
 <?php include __DIR__ . "/../parciales/navbar.php"; ?>
 
-    <!-- La página de inicio tiene dos zonas: arriba, sobre el fondo claro,
-         el bloque principal; abajo, una zona oscura a todo el ancho con
+    <!-- La página de inicio tiene dos zonas: arriba, el bloque principal con
+         el video a todo el ancho; abajo, una zona oscura a todo el ancho con
          "Explora tu biblioteca" y "Cómo funciona". -->
     <main class="inicio">
-        <div class="inicio-arriba">
-        <!-- Bloque principal: texto a la izquierda y libros en 3D a la derecha -->
-        <section class="hero">
-            <div class="hero-texto">
-                <p class="hero-etiqueta">Biblioteca Digital</p>
-                <h2>Tu biblioteca, en un solo lugar</h2>
-                <p>Consulta libros físicos y digitales, administra tus compras y accede a tus lecturas desde una plataforma simple.</p>
-                <div class="hero-botones">
-                    <a class="btn btn-primary btn-lg" href="<?php echo Ruta::h('libro'); ?>">Explorar catálogo</a>
-                    <!-- Con sesión se ofrece ir a las compras; sin sesión, crear una cuenta -->
-                    <?php if ($conSesion) { ?>
-                        <a class="btn btn-secondary btn-lg" href="<?php echo Ruta::h('compra'); ?>">Ver mis compras</a>
-                    <?php } else { ?>
-                        <a class="btn btn-secondary btn-lg" href="<?php echo Ruta::h('auth', 'registro'); ?>">Crear cuenta</a>
-                    <?php } ?>
+        <!-- Bloque principal: un video que ocupa todo el ancho (img/hero.mp4)
+             y, encima, el texto y los botones. El video es decorativo y no
+             tiene sonido. -->
+        <section class="hero-banda">
+            <video class="hero-video" autoplay muted loop playsinline preload="auto" aria-hidden="true">
+                <source src="img/hero.mp4" type="video/mp4">
+            </video>
+            <div class="hero-capa" aria-hidden="true"></div>
+            <div class="hero-interior">
+                <div class="hero-texto">
+                    <p class="hero-etiqueta">Biblioteca Digital</p>
+                    <h2>Tu biblioteca, en un solo lugar</h2>
+                    <p>Consulta libros físicos y digitales, administra tus compras y accede a tus lecturas desde una plataforma simple.</p>
+                    <div class="hero-botones">
+                        <a class="btn btn-primary btn-lg" href="<?php echo Ruta::h('libro'); ?>">Explorar catálogo</a>
+                        <!-- Con sesión se ofrece ir a las compras; sin sesión, crear una cuenta -->
+                        <?php if ($conSesion) { ?>
+                            <a class="btn btn-secondary btn-lg" href="<?php echo Ruta::h('compra'); ?>">Ver mis compras</a>
+                        <?php } else { ?>
+                            <a class="btn btn-secondary btn-lg" href="<?php echo Ruta::h('auth', 'registro'); ?>">Crear cuenta</a>
+                        <?php } ?>
+                    </div>
                 </div>
             </div>
-
-            <!-- Composición decorativa de libros (flotan muy despacio).
-                 aria-hidden: los lectores de pantalla la saltean. -->
-            <div class="hero-libros" aria-hidden="true">
-                <?php foreach ($librosHero as $fila) { ?>
-                    <div class="hero-libro"><?php echo portada_html($fila->getTitulo(), $fila->getPortada(), true); ?></div>
-                <?php } ?>
-            </div>
         </section>
-
-        </div>
 
         <!-- Zona oscura: ocupa todo el ancho y su contenido queda centrado -->
         <div class="zona-oscura">

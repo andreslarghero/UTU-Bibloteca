@@ -26,12 +26,11 @@ USE biblioteca;
 -- ============================================================
 
 -- INNER JOIN: solo las filas que coinciden en las dos tablas.
--- Cada reseña con el título del libro y el nombre de quien la escribió.
-SELECT libros.titulo, usuarios.nombre AS usuario, resenias.puntuacion
-FROM resenias
-INNER JOIN libros ON libros.id = resenias.libro_id
-INNER JOIN usuarios ON usuarios.id = resenias.usuario_id
-ORDER BY libros.titulo;
+-- Cada libro con el nombre de su categoría.
+SELECT libros.titulo, categorias.nombre AS categoria
+FROM libros
+INNER JOIN categorias ON categorias.id = libros.categoria_id
+ORDER BY categorias.nombre, libros.titulo;
 
 -- LEFT JOIN: todas las filas de la tabla izquierda; si no hay coincidencia,
 -- la derecha queda en NULL. Libros con su cantidad de reseñas (los que no
@@ -50,13 +49,13 @@ LEFT JOIN venta_lineas ON venta_lineas.libro_id = libros.id
 WHERE venta_lineas.id IS NULL
 ORDER BY libros.titulo;
 
--- RIGHT JOIN: todas las filas de la tabla derecha. Cada libro con las veces que
--- se vendió (los que nunca se vendieron salen con 0).
-SELECT libros.titulo, COUNT(venta_lineas.id) AS veces_vendido
-FROM venta_lineas
-RIGHT JOIN libros ON libros.id = venta_lineas.libro_id
-GROUP BY libros.id, libros.titulo
-ORDER BY veces_vendido DESC, libros.titulo;
+-- RIGHT JOIN: todas las filas de la tabla derecha. Categorías con la
+-- cantidad de libros que tienen (las vacías saldrían con 0).
+SELECT categorias.nombre AS categoria, COUNT(libros.id) AS cantidad_libros
+FROM libros
+RIGHT JOIN categorias ON categorias.id = libros.categoria_id
+GROUP BY categorias.id, categorias.nombre
+ORDER BY categorias.nombre;
 
 -- FULL JOIN: todas las filas de las dos tablas. MySQL y MariaDB no lo tienen:
 -- se arma con un LEFT JOIN y un RIGHT JOIN unidos con UNION.
@@ -70,25 +69,26 @@ RIGHT JOIN ventas ON ventas.id_cliente = usuarios.id;
 
 -- Unir la MISMA tabla dos veces, con alias: ventas con el cliente y el vendedor
 -- (es lo que hace la vista vw_ventas_detalle).
-SELECT ventas.id, clientes.nombre AS cliente, vendedores.nombre AS vendedor, ventas.fecha
+SELECT ventas.id, clientes.nombre AS cliente, vendedores.nombre AS vendedor, ventas.total
 FROM ventas
 LEFT JOIN usuarios AS clientes ON clientes.id = ventas.id_cliente
 LEFT JOIN usuarios AS vendedores ON vendedores.id = ventas.id_vendedor;
 
 -- JOIN de tres tablas: qué libros tiene cada venta, con su categoría.
-SELECT ventas.id AS venta, libros.titulo, libros.categoria,
+SELECT ventas.id AS venta, libros.titulo, categorias.nombre AS categoria,
        venta_lineas.cantidad, venta_lineas.precio
 FROM venta_lineas
 JOIN ventas ON ventas.id = venta_lineas.venta_id
 JOIN libros ON libros.id = venta_lineas.libro_id
+JOIN categorias ON categorias.id = libros.categoria_id
 ORDER BY ventas.id, libros.titulo;
 
 -- CROSS JOIN: todas las combinaciones posibles (producto cartesiano).
--- Cada formato con cada categoría (la categoría es un dato de libros): 2 x 9 = 18 filas.
-SELECT formatos.formato, categorias.categoria
+-- Cada formato con cada categoría: 2 x 9 = 18 filas.
+SELECT formatos.formato, categorias.nombre AS categoria
 FROM (SELECT 'fisico' AS formato UNION SELECT 'digital') AS formatos
-CROSS JOIN (SELECT DISTINCT categoria FROM libros) AS categorias
-ORDER BY formatos.formato, categorias.categoria;
+CROSS JOIN categorias
+ORDER BY formatos.formato, categorias.nombre;
 
 -- ============================================================
 -- 2. OPERACIONES DE CONJUNTOS
@@ -111,9 +111,9 @@ ORDER BY id;
 
 -- UNION ALL: igual, pero conserva los repetidos (es más rápido).
 -- Una fila por cada venta, indicando si fue de mostrador o por la web.
-SELECT id AS venta, fecha, total, 'mostrador' AS origen FROM vw_ventas_detalle WHERE id_vendedor IS NOT NULL
+SELECT id AS venta, fecha, total, 'mostrador' AS origen FROM ventas WHERE id_vendedor IS NOT NULL
 UNION ALL
-SELECT id, fecha, total, 'web' FROM vw_ventas_detalle WHERE id_vendedor IS NULL
+SELECT id, fecha, total, 'web' FROM ventas WHERE id_vendedor IS NULL
 ORDER BY fecha;
 
 -- INTERSECT: solo lo que está en los dos resultados.
@@ -220,6 +220,7 @@ ROLLBACK;
 -- ON DELETE RESTRICT: no se puede borrar algo que tiene datos que dependen de él.
 -- Estas sentencias dan el error 1451 (Cannot delete or update a parent row):
 --   DELETE FROM libros WHERE id = 2;          -- el libro ya se vendió
+--   DELETE FROM categorias WHERE id = 1;      -- la categoría tiene libros
 --   DELETE FROM usuarios WHERE id = 2;        -- el usuario tiene ventas
 
 -- DELETE vs TRUNCATE vs DROP (no se ejecutan acá):
@@ -238,7 +239,7 @@ SHOW CREATE TABLE venta_lineas;
 
 -- ALTER TABLE se practica sobre una COPIA, para no tocar las tablas de la web.
 DROP TABLE IF EXISTS libros_practica;
-CREATE TABLE libros_practica (id INT AUTO_INCREMENT PRIMARY KEY, nombre VARCHAR(50) NOT NULL UNIQUE);
+CREATE TABLE libros_practica LIKE categorias;
 
 ALTER TABLE libros_practica ADD COLUMN descripcion VARCHAR(100) NOT NULL DEFAULT '';   -- agregar una columna
 ALTER TABLE libros_practica MODIFY COLUMN descripcion VARCHAR(200);                    -- cambiar tipo o restricciones
@@ -248,10 +249,10 @@ ALTER TABLE libros_practica ADD CONSTRAINT fk_practica_padre                    
     FOREIGN KEY (padre_id) REFERENCES libros_practica(id) ON DELETE SET NULL;           -- SET NULL: la columna admite NULL
 ALTER TABLE libros_practica DROP FOREIGN KEY fk_practica_padre;                        -- quitar la clave foránea
 ALTER TABLE libros_practica DROP COLUMN padre_id;                                      -- quitar una columna
-ALTER TABLE libros_practica RENAME TO copias_practica;                                 -- renombrar la tabla
-DESCRIBE copias_practica;
+ALTER TABLE libros_practica RENAME TO categorias_practica;                             -- renombrar la tabla
+DESCRIBE categorias_practica;
 
-DROP TABLE IF EXISTS copias_practica;
+DROP TABLE IF EXISTS categorias_practica;
 DROP TABLE IF EXISTS libros_practica;
 
 -- ============================================================

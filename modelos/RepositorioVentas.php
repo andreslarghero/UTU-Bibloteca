@@ -24,7 +24,7 @@ class RepositorioVentas implements Repositorio
 
     public function __construct()
     {
-        $this->pdo = Conexion::getConexion();
+        $this->pdo = Conexion::obtener();
         $this->libros = new RepositorioLibros();
     }
 

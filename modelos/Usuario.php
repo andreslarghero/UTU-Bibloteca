@@ -56,7 +56,7 @@ abstract class Usuario
     public static function enlacesInvitado(): array
     {
         return [
-            ['id' => 'login', 'controlador' => 'auth', 'accion' => 'index', 'texto' => 'Iniciar sesión'],
+            ['id' => 'login', 'controlador' => 'auth', 'accion' => 'login', 'texto' => 'Iniciar sesión'],
             ['id' => 'registro', 'controlador' => 'auth', 'accion' => 'registro', 'texto' => 'Registrarse'],
         ];
     }

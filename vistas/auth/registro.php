@@ -43,7 +43,7 @@
                 </div>
 
                 <button class="btn btn-primary btn-lg" type="submit" data-enviando="Creando cuenta...">Registrarse</button>
-                <p>¿Ya tienes cuenta? <a href="<?php echo Ruta::h('auth'); ?>">Inicia sesión</a></p>
+                <p>¿Ya tienes cuenta? <a href="<?php echo Ruta::h('auth', 'login'); ?>">Inicia sesión</a></p>
             </form>
         </section>
     </main>

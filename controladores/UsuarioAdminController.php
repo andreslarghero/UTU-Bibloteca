@@ -126,8 +126,7 @@ class UsuarioAdminController extends Controller
 
                 // Si el bibliotecario editó su propia cuenta, se actualiza su sesión.
                 if ($id == $bibliotecario->getId()) {
-                    $_SESSION['nombre'] = $nombre;
-                    $_SESSION['rol'] = $rol;
+                    Sesion::actualizar($nombre, $rol);
                 }
 
                 // Guarda el aviso y recarga la página, para que al refrescar el

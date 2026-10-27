@@ -37,14 +37,15 @@
                 <input type="text" id="autor" name="autor" maxlength="100" value="<?php echo htmlspecialchars($libro->getAutor()); ?>" required>
             </div>
             <div>
-                <label for="categoria">Categoría</label>
-                <!-- Se escribe o se elige una de las que ya existen (lista de sugerencias) -->
-                <input type="text" id="categoria" name="categoria" list="lista-categorias" maxlength="50" value="<?php echo htmlspecialchars($libro->getCategoria()); ?>" required>
-                <datalist id="lista-categorias">
+                <label for="categoria_id">Categoría</label>
+                <select id="categoria_id" name="categoria_id" required>
+                    <option value="">Elige una categoría</option>
                     <?php foreach ($categorias as $cat) { ?>
-                        <option value="<?php echo htmlspecialchars($cat); ?>">
+                        <option value="<?php echo $cat->getId(); ?>" <?php if ($libro->getCategoriaId() == $cat->getId()) echo "selected"; ?>>
+                            <?php echo htmlspecialchars($cat->getNombre()); ?>
+                        </option>
                     <?php } ?>
-                </datalist>
+                </select>
             </div>
             <div>
                 <label for="anio">Año de publicación</label>

@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../config/Ruta.php';
+require_once __DIR__ . '/../config/Sesion.php';
 require_once __DIR__ . '/../modelos/RepositorioUsuarios.php';
 
 // ============================================================
@@ -31,21 +32,19 @@ abstract class Controller
     // de baja, cierra la sesión y también devuelve null.
     protected function sesionOpcional(): ?Usuario
     {
-        if (!isset($_SESSION['id'])) {
+        if (!Sesion::estaLogueado()) {
             return null;
         }
 
-        $usuario = $this->usuarios->buscar((int) $_SESSION['id']);
+        $usuario = $this->usuarios->buscar(Sesion::id());
 
         if (!$usuario || !$usuario->estaActivo()) {
-            $_SESSION = [];
-            session_destroy();
+            Sesion::logout();
             return null;
         }
 
         // Los datos de la sesión quedan con los que tiene ahora en la base.
-        $_SESSION['nombre'] = $usuario->getNombre();
-        $_SESSION['rol'] = $usuario->rol();
+        Sesion::actualizar($usuario->getNombre(), $usuario->rol());
 
         $this->usuario = $usuario;
         return $usuario;
@@ -55,10 +54,11 @@ abstract class Controller
     // y corta la página.
     protected function requerirSesion(): Usuario
     {
+        Sesion::requerirLogin();   // sin sesión: al login
         $usuario = $this->sesionOpcional();
 
         if (!$usuario) {
-            $this->redirigir('auth');
+            $this->redirigir('auth', 'login');
         }
 
         return $usuario;
@@ -132,14 +132,14 @@ abstract class Controller
 
     protected function guardarAviso(string $pagina, string $mensaje, string $tipo = 'exito'): void
     {
-        $_SESSION['aviso_' . $pagina] = [$mensaje, $tipo];
+        Sesion::guardar('aviso_' . $pagina, [$mensaje, $tipo]);
     }
 
     // Devuelve [mensaje, tipo] del aviso guardado (o ["", "error"]) y lo borra.
     protected function leerAviso(string $pagina): array
     {
-        $aviso = $_SESSION['aviso_' . $pagina] ?? ['', 'error'];
-        unset($_SESSION['aviso_' . $pagina]);
+        $aviso = Sesion::dato('aviso_' . $pagina, ['', 'error']);
+        Sesion::olvidar('aviso_' . $pagina);
         return $aviso;
     }
 

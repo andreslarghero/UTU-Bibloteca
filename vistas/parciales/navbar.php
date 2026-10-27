@@ -58,7 +58,7 @@ $nav_enlaces = $usuarioMenu ? $usuarioMenu->enlacesMenu() : Usuario::enlacesInvi
                 <?php } ?>
                 <!-- "Cerrar sesión" es el único enlace que cierra la sesión -->
                 <?php if ($usuarioMenu) { ?>
-                    <a class="salir" href="<?php echo Ruta::h("auth", "salir"); ?>">Cerrar sesión</a>
+                    <a class="salir" href="<?php echo Ruta::h("auth", "logout"); ?>">Cerrar sesión</a>
                 <?php } ?>
             </nav>
             <?php if ($usuarioMenu) { ?>

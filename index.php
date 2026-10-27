@@ -12,7 +12,8 @@
 // ============================================================
 
 // Recupera (o inicia) la sesión, que recuerda al usuario entre páginas.
-session_start();
+require_once __DIR__ . '/config/Sesion.php';
+Sesion::iniciar();
 
 // Los controladores que existen: nombre en la dirección => clase.
 $controladores = [

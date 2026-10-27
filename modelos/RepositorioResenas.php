@@ -12,7 +12,7 @@ class RepositorioResenas implements Repositorio
 
     public function __construct()
     {
-        $this->pdo = Conexion::getConexion();
+        $this->pdo = Conexion::obtener();
     }
 
     // Todas las reseñas con el título del libro y el nombre del usuario,

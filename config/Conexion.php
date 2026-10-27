@@ -2,7 +2,7 @@
 // ============================================================
 // CONFIG: CONEXIÓN A LA BASE DE DATOS
 // Una clase, una sola conexión para toda la aplicación.
-// Los repositorios piden la conexión con Conexion::getConexion().
+// Los repositorios piden la conexión con Conexion::obtener().
 // ============================================================
 class Conexion
 {
@@ -20,7 +20,7 @@ class Conexion
     private const USUARIO = 'nexora_app';
     private const CLAVE = 'Nexora_App_2026';
 
-    public static function getConexion(): PDO
+    public static function obtener(): PDO
     {
         if (self::$pdo === null) {
             $dsn = 'mysql:host=' . self::SERVIDOR . ';dbname=' . self::BASE . ';charset=utf8mb4';

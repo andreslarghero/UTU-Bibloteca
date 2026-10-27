@@ -1,6 +1,6 @@
 <?php
 // ============================================================
-// VISTA: inicio de sesión (AuthController::index y ::entrar)
+// VISTA: inicio de sesión (AuthController::login)
 // Solo dibuja HTML con los datos que le entrega el controlador:
 // no consulta la base de datos ni decide permisos.
 // ============================================================
@@ -14,7 +14,7 @@
 
         <section class="acceso-panel">
             <!-- Formulario de login: envía los datos a esta misma página -->
-            <form class="formulario" name="form_login" method="POST" action="<?php echo Ruta::h('auth', 'entrar'); ?>">
+            <form class="formulario" name="form_login" method="POST" action="<?php echo Ruta::h('auth', 'login'); ?>">
                 <p class="acceso-marca">
                     <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 6.5C10.5 5 8 4.5 4 4.5v13c4 0 6.5.5 8 2 1.5-1.5 4-2 8-2v-13c-4 0-6.5.5-8 2z"/><path d="M12 6.5v13"/></svg>
                     Biblioteca Digital
